@@ -1,0 +1,119 @@
+<svg width="1600" height="920" viewBox="0 0 1600 920" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1600" y2="920" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#EEF5FF"/>
+      <stop offset="1" stop-color="#F4FBF6"/>
+    </linearGradient>
+    <linearGradient id="hero" x1="40" y1="40" x2="1560" y2="220" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0F172A"/>
+      <stop offset="1" stop-color="#0B6EA8"/>
+    </linearGradient>
+    <filter id="shadow" x="0" y="0" width="1700" height="1020" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="8" stdDeviation="10" flood-color="#0f172a" flood-opacity="0.12"/>
+    </filter>
+  </defs>
+
+  <rect width="1600" height="920" fill="url(#bg)"/>
+  <rect x="20" y="20" width="1560" height="880" rx="26" fill="#F8FAFC" stroke="#DCE7F3"/>
+
+  <rect x="40" y="40" width="1520" height="170" rx="20" fill="url(#hero)" filter="url(#shadow)"/>
+  <text x="78" y="84" fill="#A5F3FC" font-family="Poppins, Arial, sans-serif" font-size="12" font-weight="700">TRAVELER - RESPUESTA INTERACTIVA EN CARDS</text>
+  <text x="78" y="130" fill="#FFFFFF" font-family="Poppins, Arial, sans-serif" font-size="34" font-weight="700">De respuesta IA a selección comercial con “Quiero esta opción”</text>
+  <text x="78" y="162" fill="#D0F2FF" font-family="Poppins, Arial, sans-serif" font-size="15">Mismo chat, más inmersivo: comparar, elegir, cotizar y seguir conversando sobre la opción elegida.</text>
+
+  <rect x="56" y="232" width="980" height="650" rx="18" fill="#FFFFFF" stroke="#DDE7F2" filter="url(#shadow)"/>
+  <text x="84" y="266" fill="#334155" font-family="Poppins, Arial, sans-serif" font-size="13" font-weight="700">COLUMNA CENTRAL - CONVERSACIÓN + CARDS SELECCIONABLES</text>
+
+  <rect x="84" y="284" width="924" height="86" rx="14" fill="#F1F5F9" stroke="#E2E8F0"/>
+  <text x="104" y="314" fill="#0F172A" font-family="Poppins, Arial, sans-serif" font-size="13" font-weight="700">Usuario:</text>
+  <text x="170" y="314" fill="#1E293B" font-family="Poppins, Arial, sans-serif" font-size="13">“Mi madre viene 10 días a Madrid. Quiero plan cómodo y bonito.”</text>
+  <text x="104" y="340" fill="#475569" font-family="Poppins, Arial, sans-serif" font-size="12">IVI convierte la respuesta en 4 cards comparables.</text>
+
+  <rect x="84" y="384" width="220" height="218" rx="14" fill="#FFFFFF" stroke="#BBF7D0"/>
+  <text x="100" y="410" fill="#166534" font-family="Poppins, Arial, sans-serif" font-size="11" font-weight="700">PROPIO</text>
+  <text x="100" y="434" fill="#0F172A" font-family="Poppins, Arial, sans-serif" font-size="14" font-weight="700">Plan Madrid Familiar</text>
+  <text x="100" y="456" fill="#475569" font-family="Poppins, Arial, sans-serif" font-size="11">10 días • ritmo tranquilo</text>
+  <text x="100" y="476" fill="#475569" font-family="Poppins, Arial, sans-serif" font-size="11">Incluye city pass + Toledo</text>
+  <text x="100" y="500" fill="#166534" font-family="Poppins, Arial, sans-serif" font-size="12" font-weight="700">EUR 790</text>
+  <rect x="100" y="524" width="126" height="30" rx="10" fill="#0F172A"/>
+  <text x="116" y="544" fill="#FFFFFF" font-family="Poppins, Arial, sans-serif" font-size="11" font-weight="700">Quiero esta opción</text>
+
+  <rect x="316" y="384" width="220" height="218" rx="14" fill="#FFFFFF" stroke="#BFDBFE"/>
+  <text x="332" y="410" fill="#1D4ED8" font-family="Poppins, Arial, sans-serif" font-size="11" font-weight="700">PROPIO (PRIORIDAD)</text>
+  <text x="332" y="434" fill="#0F172A" font-family="Poppins, Arial, sans-serif" font-size="14" font-weight="700">Plan Madrid Premium</text>
+  <text x="332" y="456" fill="#475569" font-family="Poppins, Arial, sans-serif" font-size="11">Hotel 4* + flamenco + transfer</text>
+  <text x="332" y="476" fill="#475569" font-family="Poppins, Arial, sans-serif" font-size="11">Asistencia post-reserva</text>
+  <text x="332" y="500" fill="#1D4ED8" font-family="Poppins, Arial, sans-serif" font-size="12" font-weight="700">EUR 1,190</text>
+  <rect x="332" y="524" width="126" height="30" rx="10" fill="#1D4ED8"/>
+  <text x="348" y="544" fill="#FFFFFF" font-family="Poppins, Arial, sans-serif" font-size="11" font-weight="700">Quiero esta opción</text>
+
+  <rect x="548" y="384" width="220" height="218" rx="14" fill="#FFFFFF" stroke="#FDE68A"/>
+  <text x="564" y="410" fill="#92400E" font-family="Poppins, Arial, sans-serif" font-size="11" font-weight="700">ADAPTADO (AFILIADO)</text>
+  <text x="564" y="434" fill="#0F172A" font-family="Poppins, Arial, sans-serif" font-size="14" font-weight="700">Combo Hotel + Museos</text>
+  <text x="564" y="456" fill="#475569" font-family="Poppins, Arial, sans-serif" font-size="11">Partner externo validado</text>
+  <text x="564" y="476" fill="#475569" font-family="Poppins, Arial, sans-serif" font-size="11">Comisión: 12%</text>
+  <text x="564" y="500" fill="#92400E" font-family="Poppins, Arial, sans-serif" font-size="12" font-weight="700">EUR 860</text>
+  <rect x="564" y="524" width="126" height="30" rx="10" fill="#D97706"/>
+  <text x="580" y="544" fill="#FFFFFF" font-family="Poppins, Arial, sans-serif" font-size="11" font-weight="700">Quiero esta opción</text>
+
+  <rect x="780" y="384" width="220" height="218" rx="14" fill="#FFF7ED" stroke="#FDBA74"/>
+  <text x="796" y="410" fill="#C2410C" font-family="Poppins, Arial, sans-serif" font-size="11" font-weight="700">PATROCINADO</text>
+  <text x="796" y="434" fill="#0F172A" font-family="Poppins, Arial, sans-serif" font-size="14" font-weight="700">Hotel Centro Ads</text>
+  <text x="796" y="456" fill="#7C2D12" font-family="Poppins, Arial, sans-serif" font-size="11">Slot publicitario contextual</text>
+  <text x="796" y="476" fill="#7C2D12" font-family="Poppins, Arial, sans-serif" font-size="11">Monetiza sin inventario propio</text>
+  <text x="796" y="500" fill="#C2410C" font-family="Poppins, Arial, sans-serif" font-size="12" font-weight="700">CPC dinámico</text>
+  <rect x="796" y="524" width="126" height="30" rx="10" fill="#EA580C"/>
+  <text x="818" y="544" fill="#FFFFFF" font-family="Poppins, Arial, sans-serif" font-size="11" font-weight="700">Ver anuncio</text>
+
+  <rect x="84" y="618" width="924" height="120" rx="14" fill="#ECFEFF" stroke="#A5F3FC"/>
+  <text x="104" y="648" fill="#0F172A" font-family="Poppins, Arial, sans-serif" font-size="14" font-weight="700">Interacción continua sobre opción elegida</text>
+  <text x="104" y="672" fill="#164E63" font-family="Poppins, Arial, sans-serif" font-size="12">Usuario pulsa: “Quiero esta opción (Plan Madrid Premium)”</text>
+  <text x="104" y="694" fill="#164E63" font-family="Poppins, Arial, sans-serif" font-size="12">IVI responde en cards siguientes: personalización (hotel, ritmo, presupuesto), extras y botón “Cotizar ahora”.</text>
+  <rect x="104" y="706" width="160" height="24" rx="10" fill="#0F172A"/>
+  <text x="132" y="722" fill="#FFFFFF" font-family="Poppins, Arial, sans-serif" font-size="10" font-weight="700">Cotizar ahora</text>
+  <rect x="274" y="706" width="160" height="24" rx="10" fill="#1D4ED8"/>
+  <text x="302" y="722" fill="#FFFFFF" font-family="Poppins, Arial, sans-serif" font-size="10" font-weight="700">Cambiar opción</text>
+  <rect x="444" y="706" width="160" height="24" rx="10" fill="#059669"/>
+  <text x="470" y="722" fill="#FFFFFF" font-family="Poppins, Arial, sans-serif" font-size="10" font-weight="700">Agregar extras</text>
+
+  <rect x="84" y="752" width="924" height="106" rx="14" fill="#FFFFFF" stroke="#E2E8F0"/>
+  <text x="104" y="782" fill="#0F172A" font-family="Poppins, Arial, sans-serif" font-size="13" font-weight="700">Regla de monetización sugerida</text>
+  <text x="104" y="804" fill="#475569" font-family="Poppins, Arial, sans-serif" font-size="12">1) Priorizar cards propias/adaptadas por relevancia + margen.</text>
+  <text x="104" y="824" fill="#475569" font-family="Poppins, Arial, sans-serif" font-size="12">2) Si no hay inventario propio: mostrar afiliados + patrocinados (máx 1 patrocinado cada 4 cards).</text>
+  <text x="104" y="844" fill="#475569" font-family="Poppins, Arial, sans-serif" font-size="12">3) Siempre conservar continuidad conversacional sobre la opción seleccionada.</text>
+
+  <rect x="1052" y="232" width="496" height="650" rx="18" fill="#FFFFFF" stroke="#DDE7F2" filter="url(#shadow)"/>
+  <text x="1080" y="266" fill="#334155" font-family="Poppins, Arial, sans-serif" font-size="13" font-weight="700">PANEL NEGOCIO - KPI Y RANKING DE CARDS</text>
+
+  <rect x="1080" y="286" width="440" height="124" rx="14" fill="#F8FAFC" stroke="#E2E8F0"/>
+  <text x="1100" y="316" fill="#0F172A" font-family="Poppins, Arial, sans-serif" font-size="13" font-weight="700">Fórmula de ranking (ejemplo)</text>
+  <text x="1100" y="340" fill="#334155" font-family="Poppins, Arial, sans-serif" font-size="12">Score = (0.45 * relevancia) + (0.30 * prob. compra)</text>
+  <text x="1100" y="360" fill="#334155" font-family="Poppins, Arial, sans-serif" font-size="12">        + (0.15 * margen) + (0.10 * bid_ads)</text>
+  <text x="1100" y="382" fill="#64748B" font-family="Poppins, Arial, sans-serif" font-size="11">Guardrail: no mostrar card si relevancia &lt; umbral mínimo.</text>
+
+  <rect x="1080" y="424" width="210" height="110" rx="14" fill="#ECFDF5" stroke="#BBF7D0"/>
+  <text x="1100" y="454" fill="#166534" font-family="Poppins, Arial, sans-serif" font-size="12" font-weight="700">CTR Cards Propias</text>
+  <text x="1100" y="490" fill="#065F46" font-family="Poppins, Arial, sans-serif" font-size="30" font-weight="700">31%</text>
+
+  <rect x="1310" y="424" width="210" height="110" rx="14" fill="#EFF6FF" stroke="#BFDBFE"/>
+  <text x="1330" y="454" fill="#1D4ED8" font-family="Poppins, Arial, sans-serif" font-size="12" font-weight="700">Quote Rate</text>
+  <text x="1330" y="490" fill="#1E40AF" font-family="Poppins, Arial, sans-serif" font-size="30" font-weight="700">42%</text>
+
+  <rect x="1080" y="548" width="210" height="110" rx="14" fill="#FFF7ED" stroke="#FDBA74"/>
+  <text x="1100" y="578" fill="#C2410C" font-family="Poppins, Arial, sans-serif" font-size="12" font-weight="700">Revenue ADS</text>
+  <text x="1100" y="614" fill="#9A3412" font-family="Poppins, Arial, sans-serif" font-size="30" font-weight="700">€ 5.8k</text>
+
+  <rect x="1310" y="548" width="210" height="110" rx="14" fill="#F5F3FF" stroke="#DDD6FE"/>
+  <text x="1330" y="578" fill="#6D28D9" font-family="Poppins, Arial, sans-serif" font-size="12" font-weight="700">Margen Neto</text>
+  <text x="1330" y="614" fill="#5B21B6" font-family="Poppins, Arial, sans-serif" font-size="30" font-weight="700">24%</text>
+
+  <rect x="1080" y="672" width="440" height="186" rx="14" fill="#FFFFFF" stroke="#E2E8F0"/>
+  <text x="1100" y="702" fill="#0F172A" font-family="Poppins, Arial, sans-serif" font-size="13" font-weight="700">Escenario sin inventario propio</text>
+  <text x="1100" y="726" fill="#475569" font-family="Poppins, Arial, sans-serif" font-size="12">• Mostrar primero cards adaptadas (afiliados de alta relevancia).</text>
+  <text x="1100" y="746" fill="#475569" font-family="Poppins, Arial, sans-serif" font-size="12">• Incluir 1 card patrocinada en posiciones de alta visibilidad.</text>
+  <text x="1100" y="766" fill="#475569" font-family="Poppins, Arial, sans-serif" font-size="12">• Mantener CTA conversacional: “¿Quieres esta opción o comparo 2 más?”</text>
+  <text x="1100" y="790" fill="#0F172A" font-family="Poppins, Arial, sans-serif" font-size="12" font-weight="700">Resultado:</text>
+  <text x="1174" y="790" fill="#475569" font-family="Poppins, Arial, sans-serif" font-size="12">no se corta la experiencia y se sigue monetizando.</text>
+  <text x="1100" y="818" fill="#0F172A" font-family="Poppins, Arial, sans-serif" font-size="12" font-weight="700">Siguiente interacción:</text>
+  <text x="1242" y="818" fill="#475569" font-family="Poppins, Arial, sans-serif" font-size="12">ajustar filtros y avanzar a cotización.</text>
+</svg>

@@ -1,0 +1,14 @@
+node_modules
+.next
+.cache
+.git
+.github
+android
+dist
+out
+coverage
+*.log
+*.zip
+.env
+.env.local
+.env.*.local
