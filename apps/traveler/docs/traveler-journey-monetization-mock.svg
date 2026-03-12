@@ -1,0 +1,135 @@
+<svg width="1600" height="900" viewBox="0 0 1600 900" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1600" y2="900" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#E8F3FF"/>
+      <stop offset="1" stop-color="#F4FAF7"/>
+    </linearGradient>
+    <linearGradient id="hero" x1="280" y1="40" x2="1500" y2="260" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0F172A"/>
+      <stop offset="1" stop-color="#0B6EA8"/>
+    </linearGradient>
+    <linearGradient id="cta" x1="1230" y1="255" x2="1460" y2="255" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#059669"/>
+      <stop offset="1" stop-color="#047857"/>
+    </linearGradient>
+    <filter id="shadow" x="0" y="0" width="1700" height="1000" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#0f172a" flood-opacity="0.12"/>
+    </filter>
+  </defs>
+
+  <rect width="1600" height="900" fill="url(#bg)"/>
+
+  <rect x="24" y="24" width="1552" height="852" rx="28" fill="#F8FAFC" stroke="#DDE6F0"/>
+
+  <rect x="48" y="48" width="210" height="804" rx="22" fill="#F1F7FF" stroke="#D6E6FA"/>
+  <text x="72" y="92" fill="#0F172A" font-family="Poppins, Arial, sans-serif" font-size="20" font-weight="700">INTELLI VIAJES</text>
+  <text x="72" y="114" fill="#64748B" font-family="Poppins, Arial, sans-serif" font-size="12">Traveler Journey OS</text>
+
+  <rect x="68" y="146" width="170" height="36" rx="12" fill="#0F172A"/>
+  <text x="86" y="169" fill="#FFFFFF" font-family="Poppins, Arial, sans-serif" font-size="13" font-weight="600">Hub Journey</text>
+
+  <rect x="68" y="192" width="170" height="32" rx="10" fill="#FFFFFF" stroke="#D9E6F6"/>
+  <text x="86" y="212" fill="#1E293B" font-family="Poppins, Arial, sans-serif" font-size="12" font-weight="600">Chat con IVI</text>
+
+  <rect x="68" y="232" width="170" height="32" rx="10" fill="#FFFFFF" stroke="#D9E6F6"/>
+  <text x="86" y="252" fill="#1E293B" font-family="Poppins, Arial, sans-serif" font-size="12" font-weight="600">Planning</text>
+
+  <text x="72" y="300" fill="#64748B" font-family="Poppins, Arial, sans-serif" font-size="11" font-weight="700">HISTORIAL</text>
+
+  <rect x="68" y="314" width="170" height="54" rx="10" fill="#FFFFFF" stroke="#E2E8F0"/>
+  <text x="80" y="335" fill="#0F172A" font-family="Poppins, Arial, sans-serif" font-size="11" font-weight="700">[CHAT] Viaje con mama</text>
+  <text x="80" y="352" fill="#64748B" font-family="Poppins, Arial, sans-serif" font-size="10">status: in_progress</text>
+
+  <rect x="68" y="376" width="170" height="54" rx="10" fill="#FFFFFF" stroke="#E2E8F0"/>
+  <text x="80" y="397" fill="#0F172A" font-family="Poppins, Arial, sans-serif" font-size="11" font-weight="700">[PLAN] Madrid 10 dias</text>
+  <text x="80" y="414" fill="#64748B" font-family="Poppins, Arial, sans-serif" font-size="10">status: ready_to_quote</text>
+
+  <rect x="282" y="48" width="1270" height="180" rx="24" fill="url(#hero)" filter="url(#shadow)"/>
+  <text x="320" y="92" fill="#A5F3FC" font-family="Poppins, Arial, sans-serif" font-size="12" font-weight="700">IVI EXPERIENCE</text>
+  <text x="320" y="138" fill="#FFFFFF" font-family="Poppins, Arial, sans-serif" font-size="36" font-weight="700">De respuesta de chat a ventas reales</text>
+  <text x="320" y="170" fill="#CFFAFE" font-family="Poppins, Arial, sans-serif" font-size="15">Cards interactivos: propios, patrocinados, afiliados, cotizacion y reserva.</text>
+
+  <rect x="320" y="190" width="148" height="28" rx="10" fill="#E0F2FE"/>
+  <text x="336" y="209" fill="#075985" font-family="Poppins, Arial, sans-serif" font-size="12" font-weight="700">Intent: Alta</text>
+
+  <rect x="478" y="190" width="196" height="28" rx="10" fill="#DCFCE7"/>
+  <text x="494" y="209" fill="#166534" font-family="Poppins, Arial, sans-serif" font-size="12" font-weight="700">Stage: Decide / Quote</text>
+
+  <rect x="1114" y="238" width="410" height="614" rx="20" fill="#FFFFFF" stroke="#DDE7F2" filter="url(#shadow)"/>
+  <text x="1144" y="274" fill="#334155" font-family="Poppins, Arial, sans-serif" font-size="13" font-weight="700">PANEL COMERCIAL (MONETIZACION)</text>
+
+  <rect x="1144" y="292" width="350" height="110" rx="14" fill="#F8FAFC" stroke="#E2E8F0"/>
+  <text x="1162" y="320" fill="#0F172A" font-family="Poppins, Arial, sans-serif" font-size="13" font-weight="700">Card propia: Paquete Madrid Premium</text>
+  <text x="1162" y="342" fill="#475569" font-family="Poppins, Arial, sans-serif" font-size="11">Margen alto • Conversion 38% • EUR 899</text>
+  <rect x="1162" y="356" width="100" height="28" rx="10" fill="#0F172A"/>
+  <text x="1180" y="374" fill="#FFFFFF" font-family="Poppins, Arial, sans-serif" font-size="11" font-weight="700">Cotizar</text>
+
+  <rect x="1144" y="414" width="350" height="110" rx="14" fill="#FFF7ED" stroke="#FED7AA"/>
+  <text x="1162" y="442" fill="#9A3412" font-family="Poppins, Arial, sans-serif" font-size="13" font-weight="700">Card patrocinada (ADS)</text>
+  <text x="1162" y="464" fill="#7C2D12" font-family="Poppins, Arial, sans-serif" font-size="11">Hotel Partner Centro • CPC dinamico</text>
+  <rect x="1162" y="478" width="130" height="28" rx="10" fill="#F97316"/>
+  <text x="1176" y="496" fill="#FFFFFF" font-family="Poppins, Arial, sans-serif" font-size="11" font-weight="700">Ver oferta ADS</text>
+  <rect x="1392" y="426" width="86" height="20" rx="10" fill="#FDBA74"/>
+  <text x="1410" y="440" fill="#7C2D12" font-family="Poppins, Arial, sans-serif" font-size="10" font-weight="700">PATROCINADO</text>
+
+  <rect x="1144" y="536" width="350" height="110" rx="14" fill="#F0FDF4" stroke="#BBF7D0"/>
+  <text x="1162" y="564" fill="#14532D" font-family="Poppins, Arial, sans-serif" font-size="13" font-weight="700">Card afiliada: Seguro viajero</text>
+  <text x="1162" y="586" fill="#166534" font-family="Poppins, Arial, sans-serif" font-size="11">Comision 9% • Upsell post reserva</text>
+  <rect x="1162" y="600" width="122" height="28" rx="10" fill="#16A34A"/>
+  <text x="1174" y="618" fill="#FFFFFF" font-family="Poppins, Arial, sans-serif" font-size="11" font-weight="700">Agregar seguro</text>
+
+  <rect x="1144" y="658" width="350" height="164" rx="14" fill="#F8FAFC" stroke="#E2E8F0"/>
+  <text x="1162" y="686" fill="#0F172A" font-family="Poppins, Arial, sans-serif" font-size="13" font-weight="700">Checkout rapido</text>
+  <text x="1162" y="708" fill="#475569" font-family="Poppins, Arial, sans-serif" font-size="11">Subtotal: EUR 1,249  •  Pago pendiente</text>
+  <rect x="1162" y="724" width="140" height="30" rx="10" fill="url(#cta)"/>
+  <text x="1180" y="744" fill="#FFFFFF" font-family="Poppins, Arial, sans-serif" font-size="12" font-weight="700">Enviar link pago</text>
+  <rect x="1310" y="724" width="140" height="30" rx="10" fill="#0F172A"/>
+  <text x="1334" y="744" fill="#FFFFFF" font-family="Poppins, Arial, sans-serif" font-size="12" font-weight="700">Confirmar reserva</text>
+  <text x="1162" y="780" fill="#64748B" font-family="Poppins, Arial, sans-serif" font-size="10">KPI live: CTR 26% • Quote rate 41% • Net margin 23%</text>
+
+  <rect x="282" y="242" width="816" height="610" rx="20" fill="#FFFFFF" stroke="#DDE7F2" filter="url(#shadow)"/>
+  <text x="314" y="276" fill="#334155" font-family="Poppins, Arial, sans-serif" font-size="13" font-weight="700">CHAT + STORYBOARD INTERACTIVO</text>
+
+  <rect x="314" y="296" width="752" height="210" rx="14" fill="#F8FAFC" stroke="#E2E8F0"/>
+  <text x="338" y="332" fill="#0F172A" font-family="Poppins, Arial, sans-serif" font-size="20" font-weight="700">## Resumen del viaje</text>
+  <text x="338" y="358" fill="#334155" font-family="Poppins, Arial, sans-serif" font-size="14">Plan de <tspan font-weight="700">10 dias en Madrid</tspan> para disfrutar juntos sin prisas.</text>
+  <text x="338" y="392" fill="#0F172A" font-family="Poppins, Arial, sans-serif" font-size="18" font-weight="700">### Itinerario sugerido</text>
+  <text x="338" y="416" fill="#334155" font-family="Poppins, Arial, sans-serif" font-size="13">• Dia 1-2: Centro historico • Dia 3-4: Museos + Retiro</text>
+  <text x="338" y="438" fill="#334155" font-family="Poppins, Arial, sans-serif" font-size="13">• Dia 5-6: Gastronomia + compras • Dia 7: Toledo</text>
+  <text x="338" y="460" fill="#334155" font-family="Poppins, Arial, sans-serif" font-size="13">• Dia 8-10: Flamenco, descanso y despedida</text>
+
+  <line x1="338" y1="474" x2="1040" y2="474" stroke="#CBD5E1" stroke-width="1.5"/>
+  <text x="338" y="496" fill="#0F172A" font-family="Poppins, Arial, sans-serif" font-size="16" font-weight="700">## Siguiente paso</text>
+  <text x="338" y="520" fill="#334155" font-family="Poppins, Arial, sans-serif" font-size="13">¿Quieres version ahorro o version premium?</text>
+
+  <rect x="314" y="522" width="240" height="138" rx="14" fill="#FFFFFF" stroke="#D1FAE5"/>
+  <text x="334" y="548" fill="#065F46" font-family="Poppins, Arial, sans-serif" font-size="12" font-weight="700">CARD: PLAN BASE</text>
+  <text x="334" y="570" fill="#134E4A" font-family="Poppins, Arial, sans-serif" font-size="11">Incluye city pass + traslado</text>
+  <text x="334" y="592" fill="#134E4A" font-family="Poppins, Arial, sans-serif" font-size="11">Precio: EUR 490</text>
+  <rect x="334" y="608" width="110" height="28" rx="10" fill="#0F172A"/>
+  <text x="357" y="626" fill="#FFFFFF" font-family="Poppins, Arial, sans-serif" font-size="11" font-weight="700">Agregar</text>
+
+  <rect x="572" y="522" width="240" height="138" rx="14" fill="#FFFFFF" stroke="#BFDBFE"/>
+  <text x="592" y="548" fill="#1D4ED8" font-family="Poppins, Arial, sans-serif" font-size="12" font-weight="700">CARD: PLAN PREMIUM</text>
+  <text x="592" y="570" fill="#1E3A8A" font-family="Poppins, Arial, sans-serif" font-size="11">Incluye hotel 4* + flamenco</text>
+  <text x="592" y="592" fill="#1E3A8A" font-family="Poppins, Arial, sans-serif" font-size="11">Precio: EUR 899</text>
+  <rect x="592" y="608" width="110" height="28" rx="10" fill="#1D4ED8"/>
+  <text x="615" y="626" fill="#FFFFFF" font-family="Poppins, Arial, sans-serif" font-size="11" font-weight="700">Cotizar</text>
+
+  <rect x="830" y="522" width="236" height="138" rx="14" fill="#FFFFFF" stroke="#FDE68A"/>
+  <text x="850" y="548" fill="#92400E" font-family="Poppins, Arial, sans-serif" font-size="12" font-weight="700">CARD: UPSELL</text>
+  <text x="850" y="570" fill="#78350F" font-family="Poppins, Arial, sans-serif" font-size="11">Seguro + eSIM + traslado VIP</text>
+  <text x="850" y="592" fill="#78350F" font-family="Poppins, Arial, sans-serif" font-size="11">Extra: EUR 119</text>
+  <rect x="850" y="608" width="132" height="28" rx="10" fill="#F59E0B"/>
+  <text x="870" y="626" fill="#FFFFFF" font-family="Poppins, Arial, sans-serif" font-size="11" font-weight="700">Agregar extras</text>
+
+  <rect x="314" y="676" width="752" height="154" rx="14" fill="#FFFFFF" stroke="#E2E8F0"/>
+  <text x="338" y="704" fill="#0F172A" font-family="Poppins, Arial, sans-serif" font-size="14" font-weight="700">Embudo en vivo</text>
+  <text x="338" y="726" fill="#475569" font-family="Poppins, Arial, sans-serif" font-size="12">Explorar: 100%  •  Planning: 62%  •  Cotizacion: 41%  •  Reserva: 18%</text>
+  <rect x="338" y="742" width="686" height="14" rx="7" fill="#E2E8F0"/>
+  <rect x="338" y="742" width="254" height="14" rx="7" fill="#06B6D4"/>
+  <rect x="592" y="742" width="174" height="14" rx="7" fill="#3B82F6"/>
+  <rect x="766" y="742" width="128" height="14" rx="7" fill="#22C55E"/>
+  <rect x="894" y="742" width="64" height="14" rx="7" fill="#15803D"/>
+  <text x="338" y="778" fill="#64748B" font-family="Poppins, Arial, sans-serif" font-size="11">Objetivo: maximizar margen neto sin degradar relevancia de recomendacion.</text>
+</svg>

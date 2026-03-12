@@ -1,0 +1,89 @@
+﻿
+> thecore-intranet@0.1.0 build
+> next build
+
+Ôû▓ Next.js 16.1.6 (Turbopack)
+- Environments: .env.local, .env
+
+node.exe : ÔÜá The 
+"middleware" file 
+convention is 
+deprecated. Please use 
+"proxy" instead. Learn 
+more: https://nextjs.or
+g/docs/messages/middlew
+are-to-proxy
+En línea: 1 Carácter: 1
++ & "C:\Program 
+Files\nodejs/node.exe" 
+"C:\Users\Alfred-Intell
+iViajes\A ...
++ ~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~
+~~
+    + CategoryInfo     
+         : NotSpecifi  
+  ed: (ÔÜá The "midd   
+ le...leware-to-pro    
+xy:String) [], Rem    
+oteException
+    + FullyQualifiedEr 
+   rorId : NativeComm  
+  andError
+ 
+  Creating an optimized production build ...
+
+> Build error occurred
+Error: Turbopack build 
+failed with 1 errors:
+./src/app
+Error: Next.js 
+inferred your 
+workspace root, but it 
+may not be correct.
+    We couldn't find 
+the Next.js package 
+(next/package.json) 
+from the project 
+directory: D:\proyectos
+\testeo\apps\intranet\s
+rc\app
+     To fix this, set 
+turbopack.root in your 
+Next.js config, or 
+ensure the Next.js 
+package is resolvable 
+from this directory.
+    Note: For security 
+and performance 
+reasons, files outside 
+of the project 
+directory will not be 
+compiled.
+    See https://nextjs.
+org/docs/app/api-refere
+nce/config/next-config-
+js/turbopack#root-direc
+tory for more 
+information.
+
+    at ignore-listed 
+frames
+npm error Lifecycle 
+script `build` failed 
+with error:
+npm error code 1
+npm error path D:\proye
+ctos\testeo\apps\intran
+et
+npm error workspace 
+thecore-intranet@0.1.0
+npm error location D:\p
+royectos\testeo\apps\in
+tranet
+npm error command 
+failed
+npm error command C:\WI
+NDOWS\system32\cmd.exe 
+/d /s /c next build
