@@ -672,25 +672,6 @@ export default function Page() {
                 viewport={{ once: true }}
                 transition={{ delay: 0.3, duration: 0.6 }}
               >
-                <motion.button
-                  onClick={goLogin}
-                  className="group relative inline-flex items-center gap-2 rounded-full border border-white/30 bg-white/10 px-10 py-3 text-sm font-semibold text-white backdrop-blur-lg transition-all overflow-hidden"
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.98 }}
-                >
-                  {/* Glow en hover */}
-                  <motion.div
-                    className="absolute -inset-1 rounded-full bg-gradient-to-r from-cyan-500/50 via-blue-500/50 to-cyan-500/50 opacity-0 blur-lg transition-opacity group-hover:opacity-100"
-                  />
-
-                  {/* Shimmer effect */}
-                  <motion.div
-                    className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent group-hover:translate-x-full transition-transform duration-1000"
-                  />
-
-                  <span className="relative">Entrar al panel administrativo</span>
-                  <ArrowRight className="relative h-2 w-2 transition-transform group-hover:translate-x-1" />
-                </motion.button>
               </motion.div>
             </motion.div>
           </section>
