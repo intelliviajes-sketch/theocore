@@ -132,8 +132,8 @@ function offerTag(offer: CatalogProduct) {
 
 function offerCoverClass(offer: CatalogProduct) {
   const tier = resolveOfferTier(offer);
-  if (tier === "own") return "from-[#f97316] to-[#fb923c]";
-  if (tier === "adapted") return "from-[#ea580c] to-[#fb923c]";
+  if (tier === "own") return "from-[#fbbf24] to-[#f59e0b]";
+  if (tier === "adapted") return "from-[#facc15] to-[#f59e0b]";
   return "from-[#64748b] to-[#334155]";
 }
 
@@ -270,8 +270,8 @@ export default function ChatColumn({
   const cardsGridClass = "mt-3 grid gap-2 md:grid-cols-2 xl:grid-cols-3";
 
   return (
-    <div className="trav-reveal flex h-[clamp(320px,calc(100dvh-17rem),780px)] w-full flex-col overflow-hidden rounded-3xl border border-slate-200/80 bg-white shadow-sm transition-shadow duration-300 focus-within:shadow-md sm:h-[clamp(380px,calc(100dvh-15.5rem),820px)] lg:h-[calc(100dvh-13.75rem)]">
-      <div className="border-b border-slate-200/80 px-4 py-3 sm:px-5 sm:py-4">
+    <div className="trav-panel trav-glass trav-reveal flex h-[clamp(320px,calc(100dvh-17rem),780px)] w-full flex-col overflow-hidden rounded-3xl transition-shadow duration-300 focus-within:shadow-[0_22px_48px_-38px_rgba(15,23,42,0.38)] sm:h-[clamp(380px,calc(100dvh-15.5rem),820px)] lg:h-[calc(100dvh-13.75rem)]">
+      <div className="border-b border-amber-100/70 bg-white/62 px-4 py-3 backdrop-blur-lg sm:px-5 sm:py-4">
         <p className="text-xs text-slate-500">Sandbox de conversación</p>
         <p className="mt-1 text-sm font-medium text-slate-800">
           {activeBrain ? `Brain activo: ${activeBrain.name}` : "Modo general IVI"}
@@ -281,8 +281,8 @@ export default function ChatColumn({
       <div ref={centerRef} className="flex-1 space-y-4 overflow-auto overscroll-contain p-4 sm:p-6">
         {messages.length === 0 ? (
           <div className="grid h-full place-items-center">
-            <div className="w-full max-w-2xl rounded-2xl border border-slate-200 bg-slate-50 p-5 text-center sm:p-6">
-              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-3xl bg-white text-sm font-semibold text-slate-700 ring-1 ring-slate-200 sm:h-20 sm:w-20 sm:text-base">
+            <div className="trav-glass-soft w-full max-w-2xl rounded-2xl p-5 text-center sm:p-6">
+              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-3xl bg-gradient-to-br from-amber-300 to-amber-500 text-sm font-semibold text-slate-900 ring-1 ring-amber-200/80 sm:h-20 sm:w-20 sm:text-base">
                 AI
               </div>
               <p className="text-sm text-slate-500">
@@ -296,7 +296,7 @@ export default function ChatColumn({
                     key={prompt}
                     type="button"
                     onClick={() => setInput(prompt)}
-                    className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-100"
+                    className="rounded-full border border-amber-100 bg-white/85 px-3 py-1.5 text-xs font-medium text-slate-700 transition hover:border-amber-200 hover:bg-amber-50/60"
                   >
                     {prompt}
                   </button>
@@ -319,9 +319,9 @@ export default function ChatColumn({
                         : "max-w-[95%] rounded-2xl px-4 py-3 sm:max-w-[86%] sm:px-5",
                       "transition-all duration-200",
                       message.role === "assistant"
-                        ? "border border-slate-200 bg-slate-50 text-slate-800 hover:border-orange-200"
+                        ? "trav-glass-soft border border-slate-200/85 text-slate-800 hover:border-amber-200"
                         : message.role === "user"
-                          ? "bg-orange-500 text-white shadow-sm"
+                          ? "bg-gradient-to-r from-amber-400 to-amber-500 text-slate-900 shadow-sm"
                           : "bg-slate-100 text-slate-700",
                     )}
                   >
@@ -336,7 +336,7 @@ export default function ChatColumn({
                 </div>
 
                 {message.role === "assistant" && index === lastAssistantIndex && topOffers.length > 0 ? (
-                  <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-4">
+                  <div className="trav-glass-soft rounded-2xl p-4">
                     <p className="text-xs font-semibold text-slate-700">
                       Opciones sugeridas
                     </p>
@@ -350,7 +350,7 @@ export default function ChatColumn({
                         return (
                           <div
                             key={`offer-card-${offer.id}`}
-                            className="trav-hover-card overflow-hidden rounded-xl border border-slate-200 bg-white"
+                            className="trav-hover-card trav-glass-soft overflow-hidden rounded-xl"
                           >
                             {offer.coverImage ? (
                               <img
@@ -400,7 +400,7 @@ export default function ChatColumn({
                                   <button
                                     type="button"
                                     onClick={() => onSelectOffer?.(offer)}
-                                    className="rounded-lg bg-slate-900 px-2.5 py-1.5 text-[11px] font-semibold text-white transition-all hover:bg-slate-800 active:scale-[0.98]"
+                                    className="rounded-lg bg-gradient-to-r from-amber-400 to-amber-500 px-2.5 py-1.5 text-[11px] font-semibold text-slate-900 transition-all hover:from-amber-300 hover:to-amber-500 active:scale-[0.98]"
                                   >
                                     Quiero esta opcion
                                   </button>
@@ -419,18 +419,18 @@ export default function ChatColumn({
         )}
       </div>
 
-      <div className="border-t border-slate-200/80 bg-white px-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] pt-3 sm:p-5">
+      <div className="border-t border-amber-100/70 bg-white/72 px-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] pt-3 backdrop-blur-lg sm:p-5">
         <form onSubmit={onSend} className="flex items-center gap-3">
           <input
             value={input}
             onChange={(event) => setInput(event.target.value)}
             placeholder={user.language === "en" ? "Type your message..." : "Escribe tu mensaje..."}
-            className="flex-1 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition-all placeholder:text-slate-400 focus:border-orange-400 focus:ring-4 focus:ring-orange-100 sm:px-5 sm:py-4"
+            className="flex-1 rounded-2xl border border-slate-200/90 bg-white/86 px-4 py-3 text-sm outline-none transition-all placeholder:text-slate-400 focus:border-amber-300 focus:ring-4 focus:ring-amber-100 sm:px-5 sm:py-4"
           />
           <button
             type="submit"
             disabled={sending || input.trim().length === 0}
-            className="flex h-11 w-11 items-center justify-center rounded-2xl bg-orange-500 text-white transition-all hover:bg-orange-600 active:scale-[0.98] disabled:opacity-50 sm:h-14 sm:w-14"
+            className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-r from-amber-400 to-amber-500 text-slate-900 transition-all hover:from-amber-300 hover:to-amber-500 active:scale-[0.98] disabled:opacity-50 sm:h-14 sm:w-14"
           >
             {sending ? (
               <Loader2 className="h-4 w-4 animate-spin sm:h-5 sm:w-5" />
@@ -446,11 +446,11 @@ export default function ChatColumn({
           <button
             type="button"
             aria-label="Cerrar modal"
-            className="absolute inset-0 bg-slate-900/55 backdrop-blur-[1px]"
+            className="absolute inset-0 bg-slate-900/45 backdrop-blur-[5px]"
             onClick={() => setOpenOffer(null)}
           />
-          <div className="relative z-10 flex h-[min(88vh,780px)] w-[min(920px,96vw)] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl">
-            <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3 sm:px-5 sm:py-4">
+          <div className="trav-panel trav-glass relative z-10 flex h-[min(88vh,780px)] w-[min(920px,96vw)] flex-col overflow-hidden rounded-2xl shadow-2xl">
+            <div className="flex items-center justify-between border-b border-amber-100/70 bg-white/70 px-4 py-3 backdrop-blur-lg sm:px-5 sm:py-4">
               <div>
                 <p className="text-xs text-slate-500">Detalle de opción</p>
                 <h3 className="text-sm font-semibold text-slate-900 sm:text-base">{openOffer.title}</h3>
@@ -458,12 +458,12 @@ export default function ChatColumn({
               <button
                 type="button"
                 onClick={() => setOpenOffer(null)}
-                className="rounded-lg border border-slate-200 p-2 text-slate-600 hover:bg-slate-50"
+                className="rounded-lg border border-slate-200 p-2 text-slate-600 hover:border-amber-200 hover:bg-amber-50/70"
               >
                 <X className="h-4 w-4" />
               </button>
             </div>
-            <div className="border-b border-slate-200 px-4 py-2.5 sm:px-5">
+            <div className="border-b border-amber-100/70 bg-white/58 px-4 py-2.5 backdrop-blur-lg sm:px-5">
               <div className="flex flex-wrap gap-2">
                 <button
                   type="button"
@@ -471,8 +471,8 @@ export default function ChatColumn({
                   className={cn(
                     "rounded-lg px-3 py-1.5 text-xs font-semibold",
                     openOfferTab === "overview"
-                      ? "bg-slate-900 text-white"
-                      : "bg-slate-100 text-slate-600 hover:bg-slate-200",
+                      ? "bg-gradient-to-r from-amber-400 to-amber-500 text-slate-900"
+                      : "bg-white/85 text-slate-600 hover:bg-amber-50/80",
                   )}
                 >
                   Resumen
@@ -483,8 +483,8 @@ export default function ChatColumn({
                   className={cn(
                     "rounded-lg px-3 py-1.5 text-xs font-semibold",
                     openOfferTab === "itinerary"
-                      ? "bg-slate-900 text-white"
-                      : "bg-slate-100 text-slate-600 hover:bg-slate-200",
+                      ? "bg-gradient-to-r from-amber-400 to-amber-500 text-slate-900"
+                      : "bg-white/85 text-slate-600 hover:bg-amber-50/80",
                   )}
                 >
                   Itinerario
@@ -495,8 +495,8 @@ export default function ChatColumn({
                   className={cn(
                     "rounded-lg px-3 py-1.5 text-xs font-semibold",
                     openOfferTab === "costs"
-                      ? "bg-slate-900 text-white"
-                      : "bg-slate-100 text-slate-600 hover:bg-slate-200",
+                      ? "bg-gradient-to-r from-amber-400 to-amber-500 text-slate-900"
+                      : "bg-white/85 text-slate-600 hover:bg-amber-50/80",
                   )}
                 >
                   Costos
@@ -507,8 +507,8 @@ export default function ChatColumn({
                   className={cn(
                     "rounded-lg px-3 py-1.5 text-xs font-semibold",
                     openOfferTab === "conditions"
-                      ? "bg-slate-900 text-white"
-                      : "bg-slate-100 text-slate-600 hover:bg-slate-200",
+                      ? "bg-gradient-to-r from-amber-400 to-amber-500 text-slate-900"
+                      : "bg-white/85 text-slate-600 hover:bg-amber-50/80",
                   )}
                 >
                   Condiciones
@@ -523,15 +523,15 @@ export default function ChatColumn({
                   className="h-52 w-full rounded-xl border border-slate-200 object-cover"
                 />
               ) : (
-                <div className="flex h-52 w-full items-center justify-center rounded-xl border border-slate-200 bg-gradient-to-br from-orange-500 to-rose-600">
-                  <p className="text-lg font-semibold text-white">
+                <div className="flex h-52 w-full items-center justify-center rounded-xl border border-amber-100 bg-gradient-to-br from-amber-300 to-amber-500">
+                  <p className="text-lg font-semibold text-slate-900">
                     {openOffer.productTypeName || "Experiencia recomendada"}
                   </p>
                 </div>
               )}
 
               {openOfferTab === "overview" ? (
-                <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-4">
+                <div className="trav-glass-soft mt-4 rounded-xl p-4">
                   <p className="text-xs text-slate-500">Resumen</p>
                   <p className="mt-2 text-sm text-slate-700">{openOffer.summary}</p>
                   {openOffer.destination ? (
@@ -555,7 +555,7 @@ export default function ChatColumn({
               ) : null}
 
               {openOfferTab === "itinerary" ? (
-                <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-4">
+                <div className="trav-glass-soft mt-4 rounded-xl p-4">
                   <p className="text-xs text-slate-500">Itinerario</p>
                   {openOfferData && openOfferData.itinerary.length > 0 ? (
                     <div className="mt-3 space-y-2">
@@ -577,7 +577,7 @@ export default function ChatColumn({
               ) : null}
 
               {openOfferTab === "costs" ? (
-                <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-4">
+                <div className="trav-glass-soft mt-4 rounded-xl p-4">
                   <p className="text-xs text-slate-500">Costos</p>
                   <p className="mt-2 text-sm font-semibold text-slate-900">
                     Precio estimado: {formatMoney(readOfferPrice(openOffer))}
@@ -620,7 +620,7 @@ export default function ChatColumn({
               ) : null}
 
               {openOfferTab === "conditions" ? (
-                <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-4">
+                <div className="trav-glass-soft mt-4 rounded-xl p-4">
                   <p className="text-xs text-slate-500">Condiciones</p>
                   {openOfferData && openOfferData.conditions.length > 0 ? (
                     <div className="mt-3 space-y-2">
@@ -641,12 +641,12 @@ export default function ChatColumn({
                 </div>
               ) : null}
             </div>
-            <div className="border-t border-slate-200 px-4 py-3 sm:px-5 sm:py-4">
+            <div className="border-t border-amber-100/70 bg-white/62 px-4 py-3 backdrop-blur-lg sm:px-5 sm:py-4">
               <div className="flex flex-wrap justify-end gap-2">
                 <button
                   type="button"
                   onClick={() => setOpenOffer(null)}
-                  className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+                  className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:border-amber-200 hover:bg-amber-50/70"
                 >
                   Cerrar
                 </button>
@@ -656,7 +656,7 @@ export default function ChatColumn({
                     onSelectOffer?.(openOffer);
                     setOpenOffer(null);
                   }}
-                  className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800"
+                  className="rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 px-4 py-2 text-sm font-semibold text-slate-900 hover:from-amber-300 hover:to-amber-500"
                 >
                   Quiero esta opcion
                 </button>

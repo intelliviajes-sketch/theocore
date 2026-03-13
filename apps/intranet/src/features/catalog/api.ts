@@ -16,7 +16,7 @@ function toTitleCase(value: string) {
     .replace(/[_-]+/g, " ")
     .replace(/\s+/g, " ")
     .trim()
-    .replace(/\w/g, (char) => char.toUpperCase());
+    .replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
 function pickString(data: Record<string, unknown> | null, keys: string[]) {

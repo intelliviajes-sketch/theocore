@@ -1,6 +1,8 @@
 node_modules/
 android/
 .next/
+.turbo/
+**/.turbo/
 .cache/
 .venv/
 .env
@@ -17,3 +19,4 @@ dist/
 out/
 *.zip
 workspace.code-workspace
+theocore/

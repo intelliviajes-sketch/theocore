@@ -119,12 +119,13 @@ export default function TravelerLayout({ children }: { children: React.ReactNode
   const travelerStyle = useMemo(
     () =>
       ({
-        "--trav-primary": "#f97316",
-        "--trav-accent": "#f97316",
+        "--trav-primary": "#f59e0b",
+        "--trav-accent": "#fbbf24",
         "--trav-surface": "#ffffff",
-        "--trav-surface-muted": "#fffaf7",
-        "--trav-border": "#ece7e3",
-        backgroundColor: "#fffaf7",
+        "--trav-surface-muted": "#f8fafc",
+        "--trav-border": "#e2e8f0",
+        background:
+          "radial-gradient(920px 420px at 86% -8%, rgba(251,191,36,0.18), transparent 62%), linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)",
       }) as React.CSSProperties,
     [],
   );
@@ -142,14 +143,14 @@ export default function TravelerLayout({ children }: { children: React.ReactNode
             <header
               className={`sticky top-0 z-40 border-b backdrop-blur-xl transition-all duration-300 ${
                 headerElevated
-                  ? "border-slate-200 bg-white/95 shadow-sm"
-                  : "border-slate-200/70 bg-white/90"
+                  ? "border-amber-100/80 bg-white/78 shadow-[0_10px_28px_-22px_rgba(15,23,42,0.38)]"
+                  : "border-slate-200/75 bg-white/62"
               }`}
             >
               <div className="trav-container px-3 py-3 sm:px-5">
                 <div className="flex items-center justify-between">
                   <Link href="/traveler" className="inline-flex items-center gap-3">
-                    <span className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-orange-500 text-xs font-bold tracking-[0.08em] text-white">
+                    <span className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-300 to-amber-500 text-xs font-bold tracking-[0.08em] text-slate-900 shadow-sm ring-1 ring-amber-200/80">
                       IVI
                     </span>
                     <span className="hidden sm:block">
@@ -182,7 +183,7 @@ export default function TravelerLayout({ children }: { children: React.ReactNode
                       <button
                         type="button"
                         onClick={() => setMenuOpen((current) => !current)}
-                        className="ml-1 hidden h-9 items-center justify-center rounded-full border border-slate-200 bg-white px-2 text-slate-600 transition hover:border-slate-300 hover:text-slate-900 sm:inline-flex"
+                        className="ml-1 hidden h-9 items-center justify-center rounded-full border border-slate-200 bg-white/90 px-2 text-slate-600 transition hover:border-amber-200 hover:text-slate-900 sm:inline-flex"
                         aria-label="Expandir menu de usuario"
                         aria-expanded={menuOpen}
                       >
@@ -191,7 +192,7 @@ export default function TravelerLayout({ children }: { children: React.ReactNode
                     </div>
 
                     <div
-                      className={`absolute right-0 top-12 z-50 w-56 rounded-2xl border border-slate-200 bg-white p-2 shadow-sm transition-all duration-150 ${
+                      className={`trav-glass-soft absolute right-0 top-12 z-50 w-56 rounded-2xl p-2 transition-all duration-150 ${
                         menuOpen
                           ? "pointer-events-auto visible translate-y-0 opacity-100"
                           : "pointer-events-none invisible -translate-y-1 opacity-0"

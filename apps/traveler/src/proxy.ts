@@ -1,12 +1,9 @@
 import { NextResponse, type NextRequest } from "next/server";
 
-export async function middleware(req: NextRequest) {
-  // En thecore-traveler ya no hay intranet, no necesitamos auth forzado
-  // ni chequeos de appScope de intranet.
-  
+export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
-  
-  if (pathname === '/') {
+
+  if (pathname === "/") {
     return NextResponse.redirect(new URL("/traveler", req.url));
   }
 

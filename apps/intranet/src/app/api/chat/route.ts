@@ -12,6 +12,8 @@ import {
   type ChatMessageInput,
   type ChatResponseFormat,
 } from "@/lib/chat/structured";
+import { getRequestIp } from "@/lib/api/auth";
+import { takeRateLimit } from "@intelliviajes/lib/api/rate-limit";
 
 const DEFAULT_MODEL = "gemini-flash-lite-latest";
 const MODEL_FALLBACKS = [
@@ -21,6 +23,9 @@ const MODEL_FALLBACKS = [
   "gemini-2.0-flash-lite",
   "gemini-flash-latest",
 ] as const;
+const MAX_MESSAGES = 60;
+const MAX_SINGLE_MESSAGE_CHARS = 6_000;
+const MAX_TOTAL_MESSAGE_CHARS = 40_000;
 
 type Brain = Record<string, unknown> | null;
 type ResponseProfile = "default" | "ivi_travel";
@@ -319,6 +324,21 @@ function streamFromAsyncIterable(iterable: AsyncGenerator<string, void, unknown>
 
 export async function POST(req: Request) {
   try {
+    const rateLimit = takeRateLimit({
+      key: `chat:${getRequestIp(req)}`,
+      limit: 50,
+      windowMs: 60_000,
+    });
+    if (!rateLimit.ok) {
+      return okJSON(
+        {
+          error: "Demasiadas solicitudes. Intenta de nuevo en unos segundos.",
+          retryAfterSeconds: rateLimit.retryAfterSeconds,
+        },
+        429,
+      );
+    }
+
     const url = new URL(req.url);
     const qsStream = url.searchParams.get("stream");
     const body = await req.json().catch(() => ({}));
@@ -341,12 +361,48 @@ export async function POST(req: Request) {
     if (!Array.isArray(messages) || messages.length === 0) {
       return bad("`messages` es requerido y debe ser un arreglo no vacio");
     }
+    if (messages.length > MAX_MESSAGES) {
+      return bad(`Se permiten maximo ${MAX_MESSAGES} mensajes por solicitud.`);
+    }
+
+    const normalizedMessages = messages
+      .filter(
+        (message): message is ChatMessageInput =>
+          Boolean(message)
+          && (message.role === "system" || message.role === "user" || message.role === "assistant")
+          && typeof message.content === "string",
+      )
+      .map((message) => ({
+        ...message,
+        content: message.content.trim(),
+      }))
+      .filter((message) => message.content.length > 0);
+
+    if (normalizedMessages.length === 0) {
+      return bad("No hay mensajes validos para procesar.");
+    }
+
+    let totalChars = 0;
+    for (const message of normalizedMessages) {
+      if (message.content.length > MAX_SINGLE_MESSAGE_CHARS) {
+        return bad(
+          `Cada mensaje admite maximo ${MAX_SINGLE_MESSAGE_CHARS} caracteres.`,
+        );
+      }
+      totalChars += message.content.length;
+      if (totalChars > MAX_TOTAL_MESSAGE_CHARS) {
+        return bad(
+          `El total de caracteres por solicitud no puede superar ${MAX_TOTAL_MESSAGE_CHARS}.`,
+        );
+      }
+    }
+
     if (stream && responseFormat === "structured") {
       return bad("`responseFormat=structured` solo esta disponible con `stream=false`");
     }
 
     const normalizedProfile = normalizeResponseProfile(responseProfile);
-    const { system, rest } = splitSystem(messages);
+    const { system, rest } = splitSystem(normalizedMessages);
     const effectiveSystem = buildSystemInstruction(system, normalizedProfile);
 
     if (stream) {

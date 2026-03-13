@@ -5,17 +5,17 @@ import Image from "next/image";
 import theoLogo from "@/theocore.png"; // Asegúrate que la ruta es correcta o ajusta según tu estructura
 
 /**
- * 🎯 PageLoader
+ * PageLoader
  * Componente de carga visual inteligente que aparece cuando:
  * - Se inicia el sistema
  * - Se cambia de Global a una Agencia o entre agencias
  *
  * Muestra:
- * ✅ Logo animado (flotante + glow)
- * ✅ Ondas expansivas (representando actividad de IA)
- * ✅ Partículas de energía
- * ✅ Texto dinámico "Conectando con {agencyName}..."
- * ✅ Barra de progreso animada
+ * - Logo animado (flotante + glow)
+ * - Ondas expansivas (representando actividad de IA)
+ * - Partículas de energía
+ * - Texto dinámico "Conectando con {agencyName}..."
+ * - Barra de progreso animada
  */
 export function PageLoader({ agencyName }: { agencyName: string }) {
   const displayText =
@@ -27,10 +27,10 @@ export function PageLoader({ agencyName }: { agencyName: string }) {
 <div className="fixed inset-0 bg-transparent dark:bg-[#070f22] flex items-center justify-center overflow-hidden">
 
       <div className="relative flex flex-col items-center gap-10">
-        {/* 🔵 Ondas circulares de activación IA */}
+        {/* Ondas circulares de activación IA */}
         <div className="relative">
          
-          {/* 🧠 Logo animado */}
+          {/* Logo animado */}
           <motion.div
             className="relative z-10"
             animate={{
@@ -67,7 +67,7 @@ export function PageLoader({ agencyName }: { agencyName: string }) {
           </motion.div>
         </div>
 
-        {/* 🔵 Texto dinámico */}
+        {/* Texto dinámico */}
         <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}

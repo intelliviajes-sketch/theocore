@@ -1,12 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { createSupabaseServer } from "@/lib/supabase/server";
+import { getRequestIp, resolveRequestUser } from "@/lib/api/auth";
+import { takeRateLimit } from "@intelliviajes/lib/api/rate-limit";
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const SUPABASE_ANON = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 const GEMINI_API_KEY = process.env.GOOGLE_GENERATIVE_AI_API_KEY!;
-
-const supabase = createClient(SUPABASE_URL, SUPABASE_ANON);
+const MAX_FILE_SIZE = 10 * 1024 * 1024;
+const ALLOWED_MIME_TYPES = new Set([
+  "application/pdf",
+  "image/png",
+  "image/jpeg",
+  "image/webp",
+  "text/plain",
+]);
+const ALLOWED_EXTENSIONS = new Set(["pdf", "png", "jpg", "jpeg", "webp", "txt"]);
 
 async function fileToBase64(file: File) {
   const buf = Buffer.from(await file.arrayBuffer());
@@ -22,11 +29,45 @@ async function fileToBase64(file: File) {
   return { data: buf.toString("base64"), mimeType };
 }
 
+function getFileExtension(fileName: string) {
+  if (!fileName.includes(".")) return "";
+  return fileName.split(".").pop()?.toLowerCase() ?? "";
+}
+
+function isAllowedFile(file: File) {
+  const extension = getFileExtension(file.name);
+  if (extension && !ALLOWED_EXTENSIONS.has(extension)) return false;
+  if (file.type && !ALLOWED_MIME_TYPES.has(file.type)) return false;
+  return true;
+}
+
 export async function POST(
   req: NextRequest,
   context: { params: Promise<{ brainId: string }> },
 ) {
   try {
+    const ip = getRequestIp(req);
+    const rateLimit = takeRateLimit({
+      key: `brains:${ip}`,
+      limit: 20,
+      windowMs: 60_000,
+    });
+    if (!rateLimit.ok) {
+      return NextResponse.json(
+        {
+          error: "Demasiadas solicitudes. Intenta de nuevo en unos segundos.",
+          retryAfterSeconds: rateLimit.retryAfterSeconds,
+        },
+        { status: 429 },
+      );
+    }
+
+    const { user, error: authError } = await resolveRequestUser(req);
+    if (authError || !user) {
+      return NextResponse.json({ error: authError || "No autorizado." }, { status: 401 });
+    }
+
+    const supabase = await createSupabaseServer();
     const { brainId } = await context.params;
     const form = await req.formData();
 
@@ -39,9 +80,21 @@ export async function POST(
       return NextResponse.json({ error: "No se envio texto ni archivo." }, { status: 400 });
     }
 
+    if (file) {
+      if (file.size > MAX_FILE_SIZE) {
+        return NextResponse.json({ error: "El archivo supera el limite de 10MB." }, { status: 400 });
+      }
+      if (!isAllowedFile(file)) {
+        return NextResponse.json(
+          { error: "Tipo de archivo no permitido. Usa PDF, TXT o imagenes PNG/JPG/WEBP." },
+          { status: 400 },
+        );
+      }
+    }
+
     const { data: brain, error } = await supabase
       .from("ai_assistants")
-      .select("id, name, model, strategic_concept, execution_layer")
+      .select("id, name, model, strategic_concept, execution_layer, active")
       .eq("id", brainId)
       .single();
 
@@ -56,12 +109,16 @@ export async function POST(
       );
     }
 
+    if (brain.active === false) {
+      return NextResponse.json({ error: "Este Brain esta inactivo." }, { status: 400 });
+    }
+
     if (!GEMINI_API_KEY) {
       return NextResponse.json({ error: "Falta GOOGLE_GENERATIVE_AI_API_KEY" }, { status: 500 });
     }
 
     let dynamicPromptExtension = "";
-    let dynamicSchemaExtension: Record<string, any> = {};
+    let dynamicSchemaExtension: Record<string, unknown> = {};
     let isCorrectionPhase = false;
 
     if (correctedType && productFieldsString) {
@@ -198,18 +255,19 @@ ${dynamicPromptExtension}
         rawText = result.response.text().trim();
         if (!rawText) throw new Error("Respuesta vacia de la IA.");
         json = JSON.parse(rawText);
-      } catch (error: any) {
-        const is503 = String(error?.message || "").includes("503 Service Unavailable");
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error ?? "");
+        const is503 = errorMessage.includes("503 Service Unavailable");
         if (is503 && retryCount < MAX_RETRIES - 1) {
           retryCount++;
           await new Promise((resolve) => setTimeout(resolve, 2000));
         } else {
-          console.error("ERROR JSON.parse o respuesta de IA:", rawText, error?.message);
+          console.error("ERROR JSON.parse o respuesta de IA:", rawText, errorMessage);
           return NextResponse.json(
             {
               error: "La IA no devolvio un JSON valido",
               raw: rawText,
-              geminiError: error?.message,
+              geminiError: errorMessage,
             },
             { status: 502 },
           );
@@ -228,19 +286,22 @@ ${dynamicPromptExtension}
       );
     }
 
-    json.title = json.title ?? "Documento analizado";
-    json.summary = json.summary ?? "";
-    json.typeGuess = json.typeGuess ?? (correctedType || "Otro");
-    json.sections = Array.isArray(json.sections) ? json.sections : [];
-    json.raw = json.raw ?? (text || (file ? `Archivo: ${file.name}` : ""));
-    json.extractedFields = json.extractedFields ?? {};
-    json.suggestedFields = json.suggestedFields ?? {};
+    const normalizedJson: Record<string, unknown> = {
+      ...json,
+      title: json.title ?? "Documento analizado",
+      summary: json.summary ?? "",
+      typeGuess: json.typeGuess ?? (correctedType || "Otro"),
+      sections: Array.isArray(json.sections) ? json.sections : [],
+      raw: json.raw ?? (text || (file ? `Archivo: ${file.name}` : "")),
+      extractedFields: json.extractedFields ?? {},
+      suggestedFields: json.suggestedFields ?? {},
+    };
 
     return NextResponse.json(
       {
         ok: true,
         brain: { id: brain.id, name: brain.name },
-        data: json,
+        data: normalizedJson,
       },
       { status: 200 },
     );
