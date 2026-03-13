@@ -6,6 +6,33 @@ import {
   resolveSafeRedirectUrl,
 } from "@/lib/api/auth";
 
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+function sanitizeInviteMetadata(meta: unknown) {
+  if (!meta || typeof meta !== "object" || Array.isArray(meta)) {
+    return {};
+  }
+
+  const sanitized: Record<string, string | number | boolean | null> = {};
+  const entries = Object.entries(meta as Record<string, unknown>).slice(0, 20);
+
+  for (const [key, value] of entries) {
+    const normalizedKey = key.trim().slice(0, 64);
+    if (!normalizedKey) continue;
+
+    if (typeof value === "string") {
+      sanitized[normalizedKey] = value.slice(0, 2000);
+      continue;
+    }
+
+    if (typeof value === "number" || typeof value === "boolean" || value === null) {
+      sanitized[normalizedKey] = value;
+    }
+  }
+
+  return sanitized;
+}
+
 export async function POST(req: Request) {
   try {
     const { user, error: authError } = await resolveRequestUser(req);
@@ -25,18 +52,22 @@ export async function POST(req: Request) {
     if (!normalizedEmail) {
       return new NextResponse("Email requerido", { status: 400 });
     }
+    if (!EMAIL_PATTERN.test(normalizedEmail)) {
+      return new NextResponse("Email invalido", { status: 400 });
+    }
 
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || new URL(req.url).origin;
     const safeRedirectTo = resolveSafeRedirectUrl({
       siteUrl,
       redirectTo: typeof redirectTo === "string" ? redirectTo : null,
       fallbackPath: "/intranet/auth/activate",
+      allowedPathPrefixes: ["/intranet/auth/activate"],
     });
 
     const supaAdmin = createSupabaseAdmin();
 
     const { data, error } = await supaAdmin.auth.admin.inviteUserByEmail(normalizedEmail, {
-      data: typeof meta === "object" && meta !== null ? meta : {},
+      data: sanitizeInviteMetadata(meta),
       redirectTo: safeRedirectTo,
     });
 

@@ -3,8 +3,12 @@ type RateLimitEntry = {
   resetAt: number;
 };
 
+const CLEANUP_INTERVAL_MS = 30_000;
+const MAX_RATE_LIMIT_KEYS = 10_000;
+
 declare global {
   var __apiRateLimitStore__: Map<string, RateLimitEntry> | undefined;
+  var __apiRateLimitLastCleanupAt__: number | undefined;
 }
 
 function getStore() {
@@ -12,6 +16,27 @@ function getStore() {
     globalThis.__apiRateLimitStore__ = new Map<string, RateLimitEntry>();
   }
   return globalThis.__apiRateLimitStore__;
+}
+
+function cleanupStore(store: Map<string, RateLimitEntry>, now: number) {
+  const lastCleanupAt = globalThis.__apiRateLimitLastCleanupAt__ ?? 0;
+  const shouldCleanup =
+    now - lastCleanupAt >= CLEANUP_INTERVAL_MS || store.size > MAX_RATE_LIMIT_KEYS;
+  if (!shouldCleanup) return;
+
+  for (const [storeKey, entry] of store) {
+    if (entry.resetAt <= now) {
+      store.delete(storeKey);
+    }
+  }
+
+  while (store.size > MAX_RATE_LIMIT_KEYS) {
+    const firstKey = store.keys().next().value as string | undefined;
+    if (!firstKey) break;
+    store.delete(firstKey);
+  }
+
+  globalThis.__apiRateLimitLastCleanupAt__ = now;
 }
 
 export function takeRateLimit({
@@ -25,10 +50,12 @@ export function takeRateLimit({
 }) {
   const now = Date.now();
   const store = getStore();
-  const current = store.get(key);
+  const safeKey = key.trim().slice(0, 256) || "unknown";
+  cleanupStore(store, now);
+  const current = store.get(safeKey);
 
   if (!current || current.resetAt <= now) {
-    store.set(key, {
+    store.set(safeKey, {
       count: 1,
       resetAt: now + windowMs,
     });
@@ -47,7 +74,7 @@ export function takeRateLimit({
     ...current,
     count: current.count + 1,
   };
-  store.set(key, next);
+  store.set(safeKey, next);
 
   return {
     ok: true,

@@ -34,6 +34,12 @@ Este comando ejecuta:
 2. `build` de todo el monorepo.
 3. `smoke tests` de rutas y endpoints criticos.
 
+Chequeo de texto/codificacion (opcional individual):
+
+```bash
+npm run check:text
+```
+
 ## Migraciones Supabase
 
 Se anadieron migraciones de hardening RLS en ambas apps:

@@ -10,24 +10,39 @@ const CATALOG_BUCKET = "catalog-assets";
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
 const ALLOWED_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
 
-async function ensureBucket() {
-  const admin = createSupabaseAdmin();
-  const { data: buckets, error: listError } = await admin.storage.listBuckets();
-  if (listError) throw listError;
+declare global {
+  var __catalogBucketReady__: Promise<void> | undefined;
+}
 
-  const exists = (buckets ?? []).some((bucket) => bucket.name === CATALOG_BUCKET);
-  if (!exists) {
-    const { error: createError } = await admin.storage.createBucket(CATALOG_BUCKET, {
-      public: true,
-      fileSizeLimit: `${MAX_FILE_SIZE}`,
-      allowedMimeTypes: Array.from(ALLOWED_TYPES),
-    });
-    if (createError && !createError.message.toLowerCase().includes("already exists")) {
-      throw createError;
-    }
+async function ensureBucket() {
+  if (!globalThis.__catalogBucketReady__) {
+    globalThis.__catalogBucketReady__ = (async () => {
+      const admin = createSupabaseAdmin();
+      const { data: buckets, error: listError } = await admin.storage.listBuckets();
+      if (listError) throw listError;
+
+      const exists = (buckets ?? []).some((bucket) => bucket.name === CATALOG_BUCKET);
+      if (!exists) {
+        const { error: createError } = await admin.storage.createBucket(CATALOG_BUCKET, {
+          public: true,
+          fileSizeLimit: `${MAX_FILE_SIZE}`,
+          allowedMimeTypes: Array.from(ALLOWED_TYPES),
+        });
+        if (createError && !createError.message.toLowerCase().includes("already exists")) {
+          throw createError;
+        }
+      }
+    })();
   }
 
-  return admin;
+  try {
+    await globalThis.__catalogBucketReady__;
+  } catch (error) {
+    globalThis.__catalogBucketReady__ = undefined;
+    throw error;
+  }
+
+  return createSupabaseAdmin();
 }
 
 export async function POST(request: Request) {

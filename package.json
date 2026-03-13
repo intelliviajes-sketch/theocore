@@ -6,9 +6,11 @@
     "build": "turbo run build",
     "dev": "turbo run dev",
     "lint": "turbo run lint",
+    "check:text": "node tools/check-text-health.mjs",
     "test:smoke": "node tools/smoke-test.mjs",
-    "ci:check": "npm run lint && npm run build && npm run test:smoke",
-    "db:push:all": "node tools/db-push-all.mjs"
+    "ci:check": "npm run check:text && npm run lint && npm run build && npm run test:smoke",
+    "db:push:all": "node tools/db-push-all.mjs",
+    "docs:file-review": "node tools/generate-file-review.mjs"
   },
   "devDependencies": {
     "turbo": "latest"

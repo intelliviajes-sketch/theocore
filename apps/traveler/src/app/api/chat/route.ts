@@ -31,8 +31,8 @@ type Brain = Record<string, unknown> | null;
 type ResponseProfile = "default" | "ivi_travel";
 type GeminiContent = { role: "user" | "model"; parts: { text: string }[] };
 
-function jsonHeaders() {
-  return { "Content-Type": "application/json; charset=utf-8" };
+function jsonHeaders(extra: Record<string, string> = {}) {
+  return { "Content-Type": "application/json; charset=utf-8", ...extra };
 }
 
 function sseHeaders() {
@@ -44,12 +44,12 @@ function sseHeaders() {
   };
 }
 
-function okJSON(data: unknown, status = 200) {
-  return new NextResponse(JSON.stringify(data), { status, headers: jsonHeaders() });
+function okJSON(data: unknown, status = 200, headers: Record<string, string> = {}) {
+  return new NextResponse(JSON.stringify(data), { status, headers: jsonHeaders(headers) });
 }
 
-function bad(message: string, status = 400) {
-  return okJSON({ error: message }, status);
+function bad(message: string, status = 400, headers: Record<string, string> = {}) {
+  return okJSON({ error: message }, status, headers);
 }
 
 function getGeminiApiKey() {
@@ -329,6 +329,11 @@ export async function POST(req: Request) {
       limit: 50,
       windowMs: 60_000,
     });
+    const rateLimitHeaders = {
+      "X-RateLimit-Limit": "50",
+      "X-RateLimit-Remaining": String(rateLimit.remaining),
+      "X-RateLimit-Reset-After": String(rateLimit.retryAfterSeconds),
+    };
     if (!rateLimit.ok) {
       return okJSON(
         {
@@ -336,6 +341,10 @@ export async function POST(req: Request) {
           retryAfterSeconds: rateLimit.retryAfterSeconds,
         },
         429,
+        {
+          ...rateLimitHeaders,
+          "Retry-After": String(rateLimit.retryAfterSeconds),
+        },
       );
     }
 
@@ -345,7 +354,11 @@ export async function POST(req: Request) {
 
     const apiKey = getGeminiApiKey();
     if (!apiKey) {
-      return bad("Missing Gemini API key. Define GOOGLE_GENERATIVE_AI_API_KEY o GEMINI_API_KEY.", 500);
+      return bad(
+        "Missing Gemini API key. Define GOOGLE_GENERATIVE_AI_API_KEY o GEMINI_API_KEY.",
+        500,
+        rateLimitHeaders,
+      );
     }
 
     const ai = new GoogleGenAI({ apiKey });
@@ -359,10 +372,10 @@ export async function POST(req: Request) {
     } = body || {};
 
     if (!Array.isArray(messages) || messages.length === 0) {
-      return bad("`messages` es requerido y debe ser un arreglo no vacio");
+      return bad("`messages` es requerido y debe ser un arreglo no vacio", 400, rateLimitHeaders);
     }
     if (messages.length > MAX_MESSAGES) {
-      return bad(`Se permiten maximo ${MAX_MESSAGES} mensajes por solicitud.`);
+      return bad(`Se permiten maximo ${MAX_MESSAGES} mensajes por solicitud.`, 400, rateLimitHeaders);
     }
 
     const normalizedMessages = messages
@@ -379,7 +392,7 @@ export async function POST(req: Request) {
       .filter((message) => message.content.length > 0);
 
     if (normalizedMessages.length === 0) {
-      return bad("No hay mensajes validos para procesar.");
+      return bad("No hay mensajes validos para procesar.", 400, rateLimitHeaders);
     }
 
     let totalChars = 0;
@@ -387,18 +400,22 @@ export async function POST(req: Request) {
       if (message.content.length > MAX_SINGLE_MESSAGE_CHARS) {
         return bad(
           `Cada mensaje admite maximo ${MAX_SINGLE_MESSAGE_CHARS} caracteres.`,
+          400,
+          rateLimitHeaders,
         );
       }
       totalChars += message.content.length;
       if (totalChars > MAX_TOTAL_MESSAGE_CHARS) {
         return bad(
           `El total de caracteres por solicitud no puede superar ${MAX_TOTAL_MESSAGE_CHARS}.`,
+          400,
+          rateLimitHeaders,
         );
       }
     }
 
     if (stream && responseFormat === "structured") {
-      return bad("`responseFormat=structured` solo esta disponible con `stream=false`");
+      return bad("`responseFormat=structured` solo esta disponible con `stream=false`", 400, rateLimitHeaders);
     }
 
     const normalizedProfile = normalizeResponseProfile(responseProfile);
@@ -414,17 +431,17 @@ export async function POST(req: Request) {
           rest,
         }),
       );
-      return new Response(rs, { status: 200, headers: sseHeaders() });
+      return new Response(rs, { status: 200, headers: { ...sseHeaders(), ...rateLimitHeaders } });
     }
 
     if (responseFormat === "structured") {
       const structured = await geminiNonStreamStructured({ ai, model, system: effectiveSystem, rest });
-      return okJSON({ structured, brain });
+      return okJSON({ structured, brain }, 200, rateLimitHeaders);
     }
 
     const rawReply = await geminiNonStreamText({ ai, model, system: effectiveSystem, rest });
     const reply = normalizedProfile === "ivi_travel" ? normalizeAssistantText(rawReply) : rawReply;
-    return okJSON({ reply, brain });
+    return okJSON({ reply, brain }, 200, rateLimitHeaders);
   } catch (error: unknown) {
     console.error("API Chat Error:", error);
     const message = error instanceof Error ? error.message : "Error interno del servidor de IA";
