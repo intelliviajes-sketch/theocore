@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { supabaseBrowser as supabase } from "@/lib/supabase/client";
@@ -91,6 +91,7 @@ export default function TravelerChatPage() {
   const [sending, setSending] = useState(false);
   const centerRef = useRef<HTMLDivElement>(null);
   const focusedProductRef = useRef<string | null>(null);
+  const initialQueryRef = useRef(false);
   const messages = chatMessages;
   const catalogContext = useMemo(
     () => featured.map((item) => `${item.title}${item.destination ? ` (${item.destination})` : ""}`).join(", "),
@@ -300,6 +301,18 @@ export default function TravelerChatPage() {
       source: "catalog",
     });
   }, [featured, searchParams, selectJourneyProduct, touchJourneyEntry]);
+
+  useEffect(() => {
+    const query = searchParams.get("q");
+    if (query && !initialQueryRef.current && activeBrain) {
+      initialQueryRef.current = true;
+      setInput(query);
+      setTimeout(() => {
+        void sendMessage(query);
+      }, 400);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams, activeBrain]);
 
   useEffect(() => {
     (async () => {

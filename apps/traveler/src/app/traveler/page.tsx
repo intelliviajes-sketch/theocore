@@ -17,9 +17,10 @@ export default function TravelerLandingPage() {
   const brandName = useMemo(() => getTenantBrandName(tenant), [tenant]);
   const localeLabel = useMemo(() => getTenantLocaleLabel(tenant), [tenant]);
 
-  function onStartChat() {
+  function onStartChat(initialMessage?: string) {
     beginJourneyFromMode("chat");
-    router.push("/traveler/chat");
+    const url = initialMessage ? `/traveler/chat?q=${encodeURIComponent(initialMessage)}` : "/traveler/chat";
+    router.push(url);
   }
 
   function onStartPlanning() {
