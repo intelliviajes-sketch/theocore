@@ -78,3 +78,39 @@ Hay pipeline en GitHub Actions:
 - `.github/workflows/ci.yml`
 
 Ejecuta `npm ci`, `lint`, `build` y `test:smoke` en PRs y pushes a `main/master`.
+
+## Deploy automatico a Vercel
+
+Se anadio el workflow:
+
+- `.github/workflows/vercel-deploy.yml`
+
+Comportamiento:
+
+1. En `pull_request`, crea deploy de preview para:
+   - `apps/intranet`
+   - `apps/traveler`
+2. En push a `main` o `master`, hace deploy de produccion para ambas apps.
+
+### Secrets requeridos en GitHub
+
+Configura estos secrets en el repo (`Settings > Secrets and variables > Actions`):
+
+- `VERCEL_TOKEN`
+- `VERCEL_ORG_ID`
+- `VERCEL_PROJECT_ID_INTR` (project id de la app Intranet en Vercel)
+- `VERCEL_PROJECT_ID_TRAVELER` (project id de la app Traveler en Vercel)
+
+### Como obtener los IDs de proyecto
+
+En local, una vez logueado en Vercel:
+
+```bash
+cd apps/intranet
+npx vercel link
+
+cd ../traveler
+npx vercel link
+```
+
+Cada comando crea `apps/<app>/.vercel/project.json`; de ahi puedes copiar `projectId` y `orgId` para los secrets.
