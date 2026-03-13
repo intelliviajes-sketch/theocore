@@ -1,28 +1,10 @@
 import { NextResponse } from "next/server";
-import { createSupabaseAdmin, createSupabaseServer } from "@/lib/supabase/server";
-
-async function resolveAuthenticatedUser(request: Request) {
-  const supabaseServer = await createSupabaseServer();
-  const serverUserResult = await supabaseServer.auth.getUser();
-  if (serverUserResult.data.user) {
-    return { user: serverUserResult.data.user, error: null as string | null };
-  }
-
-  const authorization = request.headers.get("authorization");
-  const token = authorization?.startsWith("Bearer ") ? authorization.slice(7).trim() : "";
-
-  if (!token) {
-    return { user: null, error: serverUserResult.error?.message || "No autorizado." };
-  }
-
-  const admin = createSupabaseAdmin();
-  const tokenUserResult = await admin.auth.getUser(token);
-  if (tokenUserResult.error || !tokenUserResult.data.user) {
-    return { user: null, error: tokenUserResult.error?.message || "No autorizado." };
-  }
-
-  return { user: tokenUserResult.data.user, error: null as string | null };
-}
+import { createSupabaseAdmin } from "@/lib/supabase/server";
+import {
+  canAccessAgency,
+  isCoreAdmin,
+  resolveRequestUser,
+} from "@/lib/api/auth";
 
 const CATALOG_BUCKET = "catalog-assets";
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
@@ -50,7 +32,7 @@ async function ensureBucket() {
 
 export async function POST(request: Request) {
   try {
-    const { user, error: authError } = await resolveAuthenticatedUser(request);
+    const { user, error: authError } = await resolveRequestUser(request);
 
     if (authError || !user) {
       return NextResponse.json({ error: authError || "No autorizado." }, { status: 401 });
@@ -62,6 +44,18 @@ export async function POST(request: Request) {
 
     if (files.length === 0) {
       return NextResponse.json({ error: "No se recibieron archivos." }, { status: 400 });
+    }
+
+    if (agencyId) {
+      const hasAgencyAccess = await canAccessAgency(user.id, agencyId);
+      if (!hasAgencyAccess) {
+        return NextResponse.json({ error: "No tienes acceso a la agencia indicada." }, { status: 403 });
+      }
+    } else {
+      const canUseGlobalScope = await isCoreAdmin(user.id);
+      if (!canUseGlobalScope) {
+        return NextResponse.json({ error: "No autorizado para subir assets globales." }, { status: 403 });
+      }
     }
 
     const admin = await ensureBucket();
@@ -76,7 +70,9 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: `El archivo ${file.name} supera el limite de 5MB.` }, { status: 400 });
       }
 
-      const extension = file.name.includes(".") ? file.name.split(".").pop() : "bin";
+      const extension = (file.name.includes(".") ? file.name.split(".").pop() : "bin")
+        ?.toLowerCase()
+        .replace(/[^a-z0-9]/g, "") || "bin";
       const scope = agencyId || "global";
       const filePath = `${scope}/${user.id}/${crypto.randomUUID()}.${extension}`;
       const arrayBuffer = await file.arrayBuffer();

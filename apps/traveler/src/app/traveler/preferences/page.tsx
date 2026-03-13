@@ -27,11 +27,7 @@ export default function TravelerPreferencesPage() {
 
   function savePreferences() {
     try {
-      const normalized = normalizeTravelerPreferences({
-        ...prefs,
-        compactCards: false,
-        cardDensity: "cozy",
-      });
+      const normalized = normalizeTravelerPreferences(prefs);
       writeTravelerPreferences(normalized);
       setPrefs(normalized);
       toast.success("Preferencias guardadas.");

@@ -5,25 +5,26 @@ function isIntranetPath(pathname: string) {
   return pathname === "/intranet" || pathname.startsWith("/intranet/");
 }
 
-export async function middleware(req: NextRequest) {
+function isPublicIntranetPath(pathname: string) {
+  return pathname.startsWith("/intranet/login")
+    || pathname.startsWith("/intranet/auth/activate");
+}
+
+export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
-  // Redirigir el root a intranet
-  if (pathname === '/') {
+  if (pathname === "/") {
     return NextResponse.redirect(new URL("/intranet", req.url));
   }
 
-  // Si no es ruta de intranet, continuar
   if (!isIntranetPath(pathname)) {
     return NextResponse.next();
   }
 
-  // Rutas publicas de intranet
-  if (pathname.startsWith("/intranet/login")) {
+  if (isPublicIntranetPath(pathname)) {
     return NextResponse.next();
   }
 
-  // Autenticacion Supabase para /intranet/*
   let res = NextResponse.next();
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -33,19 +34,19 @@ export async function middleware(req: NextRequest) {
         get(name: string) {
           return req.cookies.get(name)?.value;
         },
-        set(name: string, value: string, options: any) {
-          req.cookies.set({ name, value, ...options });
+        set(name: string, value: string, options: Record<string, unknown>) {
+          req.cookies.set({ name, value, ...(options as object) });
           res = NextResponse.next({
             request: { headers: req.headers },
           });
-          res.cookies.set({ name, value, ...options });
+          res.cookies.set({ name, value, ...(options as object) });
         },
-        remove(name: string, options: any) {
-          req.cookies.set({ name, value: "", ...options });
+        remove(name: string, options: Record<string, unknown>) {
+          req.cookies.set({ name, value: "", ...(options as object) });
           res = NextResponse.next({
             request: { headers: req.headers },
           });
-          res.cookies.set({ name, value: "", ...options });
+          res.cookies.set({ name, value: "", ...(options as object) });
         },
       },
     },

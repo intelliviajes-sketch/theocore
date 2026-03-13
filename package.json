@@ -5,7 +5,10 @@
   "scripts": {
     "build": "turbo run build",
     "dev": "turbo run dev",
-    "lint": "turbo run lint"
+    "lint": "turbo run lint",
+    "test:smoke": "node tools/smoke-test.mjs",
+    "ci:check": "npm run lint && npm run build && npm run test:smoke",
+    "db:push:all": "node tools/db-push-all.mjs"
   },
   "devDependencies": {
     "turbo": "latest"

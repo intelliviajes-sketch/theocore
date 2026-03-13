@@ -217,7 +217,7 @@ export default function LeftSidebar({
           className="w-full text-left"
         >
           <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-500">
-            {modeLabel} {entry.pinned ? "• Fijo" : ""}
+            {modeLabel} {entry.pinned ? ". Fijo" : ""}
           </p>
           <p className="mt-1 line-clamp-1 text-xs font-medium text-slate-800">
             {entry.title}

@@ -12,7 +12,7 @@ export default function TravelerWorkspaceLayout({
   right: ReactNode;
 }) {
   return (
-    <div className="trav-page bg-[#fffaf7]">
+    <div className="trav-page bg-[radial-gradient(900px_360px_at_90%_-5%,rgba(251,191,36,0.16),transparent_60%),linear-gradient(180deg,#ffffff_0%,#f8fafc_100%)]">
       <div className="trav-container">
         {topBar ? <div className="mb-3">{topBar}</div> : null}
 

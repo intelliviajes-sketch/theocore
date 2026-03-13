@@ -49,8 +49,8 @@ export function useTravelerPreferences() {
     };
   }, []);
 
-  const compactMode = false;
-  const density: TravelerCardDensity = "cozy";
+  const compactMode = preferences.compactCards || preferences.cardDensity === "compact";
+  const density: TravelerCardDensity = preferences.cardDensity;
 
   useEffect(() => {
     if (!hydrated) return;
