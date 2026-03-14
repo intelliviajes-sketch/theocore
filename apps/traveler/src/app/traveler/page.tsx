@@ -25,7 +25,9 @@ export default function TravelerLandingPage() {
     if (normalizedMessage) {
       window.sessionStorage.setItem(LANDING_PROMPT_STORAGE_KEY, normalizedMessage);
     }
-    const url = normalizedMessage ? "/traveler/chat?from=landing" : "/traveler/chat";
+    const url = normalizedMessage
+      ? `/traveler/chat?from=landing&q=${encodeURIComponent(normalizedMessage)}`
+      : "/traveler/chat";
     router.push(url);
   }
 
