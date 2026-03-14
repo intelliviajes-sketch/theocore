@@ -118,6 +118,21 @@ export default function TravelerChatPage() {
     try {
       await persistChatMessage(userMessage, selectedBrain?.id);
 
+      if (tenant.kind === "agency" && !selectedBrain) {
+        const noBrainMessage =
+          "Esta agencia no tiene un brain traveler/frontend asignado. Configuralo en TheoCore (Agencias -> Brains asignados) y verifica el dominio de la agencia.";
+        appendAssistantChunk(noBrainMessage);
+        await persistChatMessage(
+          {
+            role: "assistant",
+            content: noBrainMessage,
+            ts: Date.now(),
+          },
+          null,
+        );
+        return;
+      }
+
       const model = selectedBrain?.model || "gemini-2.5-flash";
       const baseInstruction = "You are a friendly, expert travel assistant. Your responses should be professional, concise, and helpful.";
       const brainConcept = selectedBrain?.strategic_concept || baseInstruction;
