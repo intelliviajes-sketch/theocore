@@ -393,7 +393,7 @@ export default function TravelerChatPage() {
     let cancelled = false;
     const query = landingPrompt;
     const run = async () => {
-      if (!query || initialQueryRef.current || !activeBrain || !isLandingPromptFlow) return;
+      if (!query || initialQueryRef.current || !isLandingPromptFlow) return;
       initialQueryRef.current = true;
       setInput(query);
       await createNewChatSession(activeBrain?.id ?? null);
