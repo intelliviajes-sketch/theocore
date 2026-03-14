@@ -434,6 +434,7 @@ export default function TravelerChatPage() {
             setInput={setInput}
             offers={featured}
             showSuggestedOffers={!suppressCatalogSuggestions}
+            isLandingPromptFlow={suppressCatalogSuggestions}
             onSelectOffer={(offer) => {
               void onSelectOffer(offer);
             }}

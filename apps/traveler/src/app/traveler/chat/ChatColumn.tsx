@@ -1,4 +1,4 @@
-import React, { FormEventHandler, MutableRefObject, useEffect, useMemo, useState } from "react";
+import React, { FormEventHandler, MutableRefObject, useMemo, useState } from "react";
 import { Loader2, SendHorizontal, X, Sparkles, Headphones } from "lucide-react";
 import { useDraggable } from "@dnd-kit/core";
 import { motion, useMotionValue, useTransform } from "framer-motion";
@@ -20,6 +20,7 @@ interface ChatColumnProps {
   offers?: CatalogProduct[];
   onSelectOffer?: (offer: CatalogProduct) => void;
   showSuggestedOffers?: boolean;
+  isLandingPromptFlow?: boolean;
 }
 
 function renderInlineMarkdown(text: string) {
@@ -123,20 +124,6 @@ function renderAssistantMessage(
       })}
     </div>
   );
-}
-
-function TypewriterText({ text }: { text: string }) {
-  const [displayed, setDisplayed] = useState("");
-  useEffect(() => {
-    let i = 0;
-    const interval = setInterval(() => {
-      setDisplayed(text.substring(0, i));
-      i++;
-      if (i > text.length) clearInterval(interval);
-    }, 25);
-    return () => clearInterval(interval);
-  }, [text]);
-  return <span>{displayed}<span className="inline-block w-1.5 h-4 ml-0.5 bg-amber-500 animate-[pulse_1s_ease-in-out_infinite] align-middle" /></span>;
 }
 
 function AssistantMessageRenderer({ 
@@ -322,7 +309,7 @@ function AssistantTypingSkeleton() {
       <div className="flex items-center gap-2 text-amber-500">
         <Sparkles className="h-4 w-4 animate-[pulse_2s_ease-in-out_infinite]" />
         <span className="text-sm font-medium animate-[pulse_2.5s_ease-in-out_infinite] bg-gradient-to-r from-amber-500 to-amber-300 bg-clip-text text-transparent">
-          IVI está diseñando tu experiencia...
+          IVI esta disenando tu experiencia...
         </span>
       </div>
       <div className="space-y-2">
@@ -405,6 +392,7 @@ export default function ChatColumn({
   offers = [],
   onSelectOffer,
   showSuggestedOffers = true,
+  isLandingPromptFlow = false,
 }: ChatColumnProps) {
   const [openOffer, setOpenOffer] = useState<CatalogProduct | null>(null);
   const [openOfferTab, setOpenOfferTab] = useState<OfferTab>("overview");
@@ -426,6 +414,11 @@ export default function ChatColumn({
   const openOfferData = useMemo(() => (openOffer ? readTabData(openOffer) : null), [openOffer]);
   const compactCards = compactMode;
   const cardsGridClass = "mt-3 grid gap-2 md:grid-cols-2 xl:grid-cols-3";
+  const emptyStateMessage = isLandingPromptFlow
+    ? "Procesando tu mensaje..."
+    : activeBrain
+      ? `Hola, soy IVI. ${activeBrain.name} esta listo para ayudarte.`
+      : "Hola, soy IVI. Cuentame a donde quieres viajar.";
 
   return (
     <div className="trav-panel trav-glass trav-reveal flex h-[clamp(320px,calc(100dvh-17rem),780px)] w-full flex-col overflow-hidden rounded-3xl transition-shadow duration-300 focus-within:shadow-[0_22px_48px_-38px_rgba(15,23,42,0.38)] sm:h-[clamp(380px,calc(100dvh-15.5rem),820px)] lg:h-[calc(100dvh-13.75rem)]">
@@ -475,11 +468,7 @@ export default function ChatColumn({
                 AI
               </div>
               <p className="text-sm font-medium text-slate-600">
-                <TypewriterText 
-                  text={activeBrain
-                    ? `¡Hola! Soy IVI. Iniciando tu experiencia personalizada con ${activeBrain.name}...`
-                    : "¡Hola! Soy IVI. ¿A dónde soñamos viajar hoy?"} 
-                />
+                {emptyStateMessage}
               </p>
             </div>
           </div>
@@ -609,26 +598,28 @@ export default function ChatColumn({
       {/* STICKY CHAT INPUT */}
       <div className="absolute bottom-4 left-4 right-4 z-20 flex flex-col sm:bottom-6 sm:left-6 sm:right-6">
         {messages.length === 0 ? (
-          <div className="mb-4 flex flex-wrap justify-center gap-2">
-            {QUICK_PROMPTS.map((prompt) => (
-              <button
-                key={prompt}
-                type="button"
-                onClick={() => setInput(prompt)}
-                className="rounded-full border border-white/60 bg-white/70 px-4 py-2 text-xs sm:text-[13px] font-medium text-slate-700 shadow-sm backdrop-blur-md transition hover:border-amber-200 hover:bg-white"
-              >
-                {prompt}
-              </button>
-            ))}
-          </div>
+          !isLandingPromptFlow ? (
+            <div className="mb-4 flex flex-wrap justify-center gap-2">
+              {QUICK_PROMPTS.map((prompt) => (
+                <button
+                  key={prompt}
+                  type="button"
+                  onClick={() => setInput(prompt)}
+                  className="rounded-full border border-white/60 bg-white/70 px-4 py-2 text-xs sm:text-[13px] font-medium text-slate-700 shadow-sm backdrop-blur-md transition hover:border-amber-200 hover:bg-white"
+                >
+                  {prompt}
+                </button>
+              ))}
+            </div>
+          ) : null
         ) : (
           !sending && (
           <div className="mb-3 flex w-full overflow-x-auto scrollbar-hide space-x-2 px-1">
             {[
-              "¿Hacemos algo más romántico?",
-              "Busca algo económico",
-              "¿Qué clima hace allí?",
-              "Muéstrame el itinerario"
+              "Hacemos algo mas romantico?",
+              "Busca algo economico",
+              "Que clima hace alli?",
+              "Muestrame el itinerario"
             ].map((chip) => (
               <button
                 key={chip}
@@ -680,7 +671,7 @@ export default function ChatColumn({
           <div className="trav-panel trav-glass relative z-10 flex h-[min(88vh,780px)] w-[min(920px,96vw)] flex-col overflow-hidden rounded-2xl shadow-2xl">
             <div className="flex items-center justify-between border-b border-amber-100/70 bg-white/70 px-4 py-3 backdrop-blur-lg sm:px-5 sm:py-4">
               <div>
-                <p className="text-xs text-slate-500">Detalle de opción</p>
+                <p className="text-xs text-slate-500">Detalle de opcion</p>
                 <h3 className="text-sm font-semibold text-slate-900 sm:text-base">{openOffer.title}</h3>
               </div>
               <button
@@ -896,6 +887,3 @@ export default function ChatColumn({
     </div>
   );
 }
-
-
-
