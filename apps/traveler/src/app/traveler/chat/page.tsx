@@ -1,11 +1,11 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { supabaseBrowser as supabase } from "@/lib/supabase/client";
 import { useTenant } from "@/contexts/tenant";
 import { useTravelerCatalog } from "@/contexts/traveler-catalog";
 import { getTenantBrandName } from "@/lib/tenant/presentation";
 import { useSearchParams } from "next/navigation";
+import { DndContext, DragEndEvent, MouseSensor, TouchSensor, useSensor, useSensors } from "@dnd-kit/core";
 
 import ChatColumn from "./ChatColumn";
 import { useAuth } from "../AuthContext";
@@ -13,53 +13,23 @@ import { Brain, ChatMessage, UserLite, guessLang } from "./types-and-utils";
 import TravelerWorkspaceLayout from "../TravelerWorkspaceLayout";
 import TravelerSalesSidebar from "../TravelerSalesSidebar";
 import { useTravelerWorkspace } from "../TravelerWorkspaceContext";
+import { loadBrainsForTenant } from "@/lib/traveler/brains";
+import { normalizeAssistantOutput } from "@/lib/traveler/assistant-output";
 import { trackTravelerEvent } from "@/lib/traveler/tracking";
 
-async function loadBrainsForTenant(agencyId: string | null) {
-  if (agencyId) {
-    const { data: links, error: linksError } = await supabase
-      .from("agencies_ai_assistants")
-      .select("ai_assistant_id")
-      .eq("agency_id", agencyId);
-
-    if (linksError) {
-      console.error("Error cargando links de brains:", linksError);
-    }
-
-    const linkedBrainIds = (links ?? []).map((item) => item.ai_assistant_id).filter(Boolean);
-    if (linkedBrainIds.length > 0) {
-      const { data: agencyBrains, error: brainsError } = await supabase
-        .from("ai_assistants")
-        .select("*")
-        .in("id", linkedBrainIds)
-        .eq("active", true);
-
-      if (brainsError) {
-        console.error("Error cargando brains asignados:", brainsError);
-      } else {
-        const resolvedAgencyBrains = (agencyBrains ?? []) as Brain[];
-        if (resolvedAgencyBrains.length > 0) {
-          return resolvedAgencyBrains;
-        }
-      }
-    }
+function pickBestChatBrain(brains: Brain[], preferredBrainId: string | null | undefined) {
+  if (preferredBrainId) {
+    const preferred = brains.find((brain) => brain.id === preferredBrainId);
+    if (preferred) return preferred;
   }
 
-  const { data: globalBrains, error: globalBrainsError } = await supabase
-    .from("ai_assistants")
-    .select("*")
-    .eq("active", true)
-    .in("scope", ["global"]);
+  const byType =
+    brains.find((brain) => brain.brain_type === "acompana")
+    ?? brains.find((brain) => brain.brain_type === "inspira")
+    ?? brains.find((brain) => brain.brain_type === "planifica");
 
-  if (globalBrainsError) {
-    console.error("Error cargando brains globales:", globalBrainsError);
-    return [] as Brain[];
-  }
-
-  return (globalBrains ?? []) as Brain[];
+  return byType ?? brains[0] ?? null;
 }
-
-import { DndContext, DragEndEvent, MouseSensor, TouchSensor, useSensor, useSensors } from "@dnd-kit/core";
 
 export default function TravelerChatPage() {
   const { user: authUser } = useAuth();
@@ -69,6 +39,7 @@ export default function TravelerChatPage() {
   const brandName = getTenantBrandName(tenant);
   const {
     chatMessages,
+    setChatMessages,
     appendChatMessage,
     appendAssistantChunk,
     persistChatMessage,
@@ -88,20 +59,6 @@ export default function TravelerChatPage() {
 
   const [brains, setBrains] = useState<Brain[]>([]);
   const [activeBrainId, setActiveBrainId] = useState<string | null>(null);
-
-  useEffect(() => {
-    loadBrainsForTenant(tenant.kind === "agency" ? tenant.agency?.id ?? null : null)
-      .then((loadedBrains) => {
-        setBrains(loadedBrains);
-        const savedId = tenant.market?.defaultBrainId;
-        if (savedId && loadedBrains.some((b) => b.id === savedId)) {
-          setActiveBrainId(savedId);
-        } else if (loadedBrains.length > 0) {
-          setActiveBrainId(loadedBrains[0].id);
-        }
-      })
-      .catch(console.error);
-  }, [tenant]);
 
   const activeBrain = useMemo(() => brains.find((brain) => brain.id === activeBrainId) || null, [brains, activeBrainId]);
 
@@ -261,8 +218,21 @@ export default function TravelerChatPage() {
         }
       }
 
-      const finalAssistant = assistantBuffer.trim();
+      const finalAssistant = normalizeAssistantOutput(assistantBuffer);
       if (finalAssistant) {
+        setChatMessages((current) => {
+          if (current.length === 0) return current;
+          const next = [...current];
+          const lastIndex = next.length - 1;
+          if (next[lastIndex].role !== "assistant") return current;
+          next[lastIndex] = {
+            ...next[lastIndex],
+            content: finalAssistant,
+            ts: Date.now(),
+          };
+          return next;
+        });
+
         const assistantMessage: ChatMessage = {
           role: "assistant",
           content: finalAssistant,
@@ -366,7 +336,10 @@ export default function TravelerChatPage() {
   }, [searchParams, activeBrain]);
 
   useEffect(() => {
-    (async () => {
+    let cancelled = false;
+
+    const run = async () => {
+      const agencyId = tenant.kind === "agency" ? tenant.agency?.id ?? null : null;
       const geoCountry = tenant.market?.countryCode || tenant.agency?.countryCode || "ES";
       const geoLanguage = tenant.market?.languageCode || guessLang();
       
@@ -383,6 +356,7 @@ export default function TravelerChatPage() {
         console.error("Failed to load global prefs", e);
       }
 
+      if (cancelled) return;
       setUser({
         id: authUser?.id || null,
         name: authUser?.name || undefined,
@@ -391,16 +365,20 @@ export default function TravelerChatPage() {
         prefs: Object.keys(initialPrefs).length > 0 ? [(initialPrefs as any)] : [],
       });
 
-      const list = await loadBrainsForTenant(tenant.agency?.id ?? null);
+      const list = (await loadBrainsForTenant(agencyId)) as Brain[];
+      if (cancelled) return;
       setBrains(list);
 
-      const preferredBrainId = tenant.market?.defaultBrainId;
-      const preferredBrain = preferredBrainId ? list.find((brain) => brain.id === preferredBrainId) : null;
-      const nextBrain = preferredBrain || list[0] || null;
-
+      const nextBrain = pickBestChatBrain(list, tenant.market?.defaultBrainId);
       setActiveBrainId(nextBrain?.id ?? null);
-    })();
-  }, [authUser, tenant, brandName]);
+    };
+
+    void run();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [authUser, tenant]);
 
   return (
     <DndContext sensors={sensors} onDragEnd={handleDragEnd}>

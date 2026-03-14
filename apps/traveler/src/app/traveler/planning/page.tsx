@@ -12,6 +12,8 @@ import { guessLang, type Brain } from "./types-and-utils";
 import TravelerWorkspaceLayout from "../TravelerWorkspaceLayout";
 import { useTravelerWorkspace } from "../TravelerWorkspaceContext";
 import TravelerSalesSidebar from "../TravelerSalesSidebar";
+import { loadBrainsForTenant } from "@/lib/traveler/brains";
+import { normalizeAssistantOutput } from "@/lib/traveler/assistant-output";
 import { trackTravelerEvent } from "@/lib/traveler/tracking";
 
 type ProductType = {
@@ -125,34 +127,18 @@ function computePreview(selectedType: ProductType | null, formData: Record<strin
   };
 }
 
-async function loadBrainsForTenant(agencyId: string | null) {
-  if (agencyId) {
-    const { data: links } = await supabase
-      .from("agencies_ai_assistants")
-      .select("ai_assistant_id")
-      .eq("agency_id", agencyId);
-
-    const linkedBrainIds = (links ?? []).map((item) => item.ai_assistant_id).filter(Boolean);
-    if (linkedBrainIds.length > 0) {
-      const { data: agencyBrains, error } = await supabase
-        .from("ai_assistants")
-        .select("*")
-        .in("id", linkedBrainIds)
-        .eq("active", true);
-
-      if (!error) {
-        return (agencyBrains ?? []) as Brain[];
-      }
-    }
+function pickBestPlanningBrain(brains: Brain[], preferredBrainId: string | null | undefined) {
+  if (preferredBrainId) {
+    const preferred = brains.find((brain) => brain.id === preferredBrainId);
+    if (preferred) return preferred;
   }
 
-  const { data: globalBrains } = await supabase
-    .from("ai_assistants")
-    .select("*")
-    .eq("active", true)
-    .in("scope", ["global", "agency"]);
-
-  return (globalBrains ?? []) as Brain[];
+  return (
+    brains.find((brain) => brain.brain_type === "planifica")
+    ?? brains.find((brain) => brain.brain_type === "acompana")
+    ?? brains[0]
+    ?? null
+  );
 }
 
 export default function TravelerPlanningPage() {
@@ -264,13 +250,23 @@ export default function TravelerPlanningPage() {
   }, [tenant.agency?.id, showError]);
 
   useEffect(() => {
-    (async () => {
-      const list = await loadBrainsForTenant(tenant.agency?.id ?? null);
+    let cancelled = false;
+
+    const run = async () => {
+      const agencyId = tenant.kind === "agency" ? tenant.agency?.id ?? null : null;
+      const list = (await loadBrainsForTenant(agencyId)) as Brain[];
+      if (cancelled) return;
       setBrains(list);
-      const planningBrain = list.find((brain) => brain.brain_type === "planifica") || list[0] || null;
-      setActiveBrainId(tenant.market?.defaultBrainId || planningBrain?.id || null);
-    })();
-  }, [tenant.agency?.id, tenant.market?.defaultBrainId]);
+      const nextBrain = pickBestPlanningBrain(list, tenant.market?.defaultBrainId);
+      setActiveBrainId(nextBrain?.id ?? null);
+    };
+
+    void run();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [tenant.kind, tenant.agency?.id, tenant.market?.defaultBrainId]);
 
   useEffect(() => {
     if (!selectedType) {
@@ -447,8 +443,13 @@ export default function TravelerPlanningPage() {
         }),
       });
 
-      const result = await response.json();
-      const reply = String(result.reply || "").trim();
+      const result = await response.json().catch(() => ({} as Record<string, unknown>));
+      if (!response.ok) {
+        const apiError = typeof result.error === "string" ? result.error : "No se pudo generar respuesta con IA.";
+        throw new Error(apiError);
+      }
+
+      const reply = normalizeAssistantOutput(result.reply);
 
       if (!reply) {
         showError("La IA no devolvio contenido util.");

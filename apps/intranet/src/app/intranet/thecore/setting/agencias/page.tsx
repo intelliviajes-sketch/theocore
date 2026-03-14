@@ -28,7 +28,15 @@ function AgencyFormModal({
   open: boolean;
   agency: Agency | null;
   countries: Array<{ code: string; name: string; emoji_flag: string }>;
-  brains: Array<{ id: string; name: string; active: boolean; target_lang: string | null }>;
+  brains: Array<{
+    id: string;
+    name: string;
+    active: boolean;
+    target_lang: string | null;
+    scope: "global" | "agency" | null;
+    owner_agency_id: string | null;
+    created_for_agency_id: string | null;
+  }>;
   assignedBrainIds: string[];
   onClose: () => void;
   onSave: (payload: AgencySavePayload) => Promise<void>;
@@ -48,6 +56,20 @@ function AgencyFormModal({
   const [selectedBrains, setSelectedBrains] = useState<string[]>([]);
   const { error } = useToast();
 
+  const availableBrains = useMemo(() => {
+    const agencyId = agency?.id ?? null;
+    return brains.filter((brain) => {
+      if (brain.scope === "global" || brain.scope === null) return true;
+      if (!agencyId) return false;
+      return brain.owner_agency_id === agencyId || brain.created_for_agency_id === agencyId;
+    });
+  }, [brains, agency?.id]);
+
+  const availableBrainIds = useMemo(
+    () => new Set(availableBrains.map((brain) => brain.id)),
+    [availableBrains],
+  );
+
   useEffect(() => {
     if (!open) return;
     setCommercialName(agency?.commercial_name ?? "");
@@ -60,8 +82,8 @@ function AgencyFormModal({
     setTaxId(agency?.tax_id ?? "");
     setBankInformation(JSON.stringify(agency?.bank_information ?? {}, null, 2));
     setActive(agency?.active ?? true);
-    setSelectedBrains(assignedBrainIds);
-  }, [agency, assignedBrainIds, countries, open]);
+    setSelectedBrains(assignedBrainIds.filter((brainId) => availableBrainIds.has(brainId)));
+  }, [agency, assignedBrainIds, availableBrainIds, countries, open]);
 
   const validation = useMemo(
     () => validateAgencyForm({ commercialName, legalName, countryCode, emailContact, emailEmergency, whatsapp, bankInformation }),
@@ -118,7 +140,7 @@ function AgencyFormModal({
           </div>
           <Field label="Direccion"><input value={address} onChange={(e) => setAddress(e.target.value)} className={inputClass()} /></Field>
           <Field label="Informacion bancaria (JSON)" error={validation.bankInformation}><textarea rows={4} value={bankInformation} onChange={(e) => setBankInformation(e.target.value)} className={`${inputClass(validation.bankInformation)} h-auto py-3 font-mono text-xs`} /></Field>
-          <Field label="Brains asignados"><div className="grid max-h-56 gap-2 overflow-y-auto rounded-2xl border border-slate-200 p-3 dark:border-slate-700">{brains.length === 0 ? <div className="text-sm text-slate-500 dark:text-slate-400">No hay brains disponibles.</div> : brains.map((brain) => { const checked = selectedBrains.includes(brain.id); return <label key={brain.id} className="flex items-center justify-between rounded-2xl border border-slate-200 px-3 py-2 text-sm dark:border-slate-700"><div><div className="font-medium text-slate-800 dark:text-slate-100">{brain.name}</div><div className="text-xs text-slate-500 dark:text-slate-400">{brain.target_lang || "Sin idioma"} · {brain.active ? "Activo" : "Inactivo"}</div></div><input type="checkbox" checked={checked} onChange={() => setSelectedBrains((current) => current.includes(brain.id) ? current.filter((item) => item !== brain.id) : [...current, brain.id])} /></label>; })}</div></Field>
+          <Field label="Brains asignados"><div className="grid max-h-56 gap-2 overflow-y-auto rounded-2xl border border-slate-200 p-3 dark:border-slate-700">{availableBrains.length === 0 ? <div className="text-sm text-slate-500 dark:text-slate-400">No hay brains disponibles para esta agencia.</div> : availableBrains.map((brain) => { const checked = selectedBrains.includes(brain.id); return <label key={brain.id} className="flex items-center justify-between rounded-2xl border border-slate-200 px-3 py-2 text-sm dark:border-slate-700"><div><div className="font-medium text-slate-800 dark:text-slate-100">{brain.name}</div><div className="text-xs text-slate-500 dark:text-slate-400">{brain.target_lang || "Sin idioma"} · {brain.active ? "Activo" : "Inactivo"}</div></div><input type="checkbox" checked={checked} onChange={() => setSelectedBrains((current) => current.includes(brain.id) ? current.filter((item) => item !== brain.id) : [...current, brain.id])} /></label>; })}</div></Field>
           <div className="flex justify-end gap-3 pt-2"><button type="button" onClick={onClose} className="rounded-xl bg-slate-200 px-4 py-2 text-sm font-medium text-slate-800 hover:opacity-90 dark:bg-slate-800 dark:text-slate-200">Cancelar</button><button type="submit" disabled={!canSubmit || saving} className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60">{saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}{agency ? "Guardar cambios" : "Crear agencia"}</button></div>
         </form>
       </div>

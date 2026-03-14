@@ -30,6 +30,9 @@ export type Brain = {
   name: string;
   active: boolean;
   target_lang: string | null;
+  scope: "global" | "agency" | null;
+  owner_agency_id: string | null;
+  created_for_agency_id: string | null;
 };
 
 export type AgencySavePayload = {
@@ -84,7 +87,10 @@ export function useGlobalAgencies() {
       ] = await Promise.all([
         supabase.from("agencies").select("*").order("created_at", { ascending: false }),
         supabase.from("countries").select("code, name, phone_prefix, emoji_flag").order("name", { ascending: true }),
-        supabase.from("ai_assistants").select("id, name, active, target_lang").order("name", { ascending: true }),
+        supabase
+          .from("ai_assistants")
+          .select("id, name, active, target_lang, scope, owner_agency_id, created_for_agency_id")
+          .order("name", { ascending: true }),
         supabase.from("agencies_ai_assistants").select("agency_id, ai_assistant_id"),
         supabase.from("agency_team").select("agency_id, full_name, email, role, active"),
         supabase.from("agency_travelers").select("agency_id, traveler_id, status"),

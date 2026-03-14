@@ -6,6 +6,7 @@ import { Brain, ChatMessage, UserLite, cn } from "./types-and-utils";
 import type { CatalogProduct } from "@/lib/catalog/travelers";
 import { useTravelerPreferences } from "../useTravelerPreferences";
 import { useTravelerWorkspace } from "../TravelerWorkspaceContext";
+import { normalizeAssistantOutput } from "@/lib/traveler/assistant-output";
 
 interface ChatColumnProps {
   messages: ChatMessage[];
@@ -146,12 +147,13 @@ function AssistantMessageRenderer({
   offers: CatalogProduct[]; 
   onSelectOffer?: (offer: CatalogProduct) => void;
 }) {
-  const isLong = content.length > 600;
+  const normalizedContent = useMemo(() => normalizeAssistantOutput(content), [content]);
+  const isLong = normalizedContent.length > 600;
   const [expanded, setExpanded] = useState(!isLong);
   return (
     <div className="relative">
       <div className={cn("overflow-hidden transition-all duration-500", expanded ? "max-h-[10000px]" : "max-h-[220px]")}>
-         {renderAssistantMessage(content, offers, onSelectOffer)}
+         {renderAssistantMessage(normalizedContent, offers, onSelectOffer)}
       </div>
       {!expanded && (
         <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-white via-white/80 to-transparent flex items-end justify-center pb-2 rounded-b-2xl">
