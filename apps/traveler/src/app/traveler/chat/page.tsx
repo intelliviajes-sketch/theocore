@@ -398,6 +398,9 @@ export default function TravelerChatPage() {
       setInput(query);
       await createNewChatSession(activeBrain?.id ?? null);
       if (cancelled) return;
+      // Ensure the first prompt starts from a clean chat context.
+      messagesRef.current = [];
+      setChatMessages([]);
       void sendMessage(query);
     };
 
@@ -481,16 +484,13 @@ export default function TravelerChatPage() {
           />
         }
         right={
-          suppressCatalogSuggestions
-            ? null
-            : (
-              <TravelerSalesSidebar
-                mode="chat"
-                offers={featured}
-                brandName={brandName}
-                currencyCode={tenant.market?.currencyCode || "EUR"}
-              />
-            )
+          <TravelerSalesSidebar
+            mode="chat"
+            offers={featured}
+            brandName={brandName}
+            currencyCode={tenant.market?.currencyCode || "EUR"}
+            hideRecommendations={suppressCatalogSuggestions}
+          />
         }
       />
     </DndContext>

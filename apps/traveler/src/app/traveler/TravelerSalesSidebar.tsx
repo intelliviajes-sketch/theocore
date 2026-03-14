@@ -56,24 +56,28 @@ export default function TravelerSalesSidebar({
   mode,
   offers,
   currencyCode = "EUR",
+  hideRecommendations = false,
 }: {
   mode: "chat" | "planning";
   offers: CatalogProduct[];
   planningProgress?: { completed: number; total: number };
   currencyCode?: string;
   brandName?: string;
+  hideRecommendations?: boolean;
 }) {
   const router = useRouter();
   const { insight, journeyState, selectJourneyProduct } = useTravelerWorkspace();
 
   const recommendedOffers = useMemo(() => {
+    if (hideRecommendations) return [] as CatalogProduct[];
+
     const prioritized = insight.recommendedProductIds
       .map((id) => offers.find((offer) => offer.id === id))
       .filter((offer): offer is CatalogProduct => Boolean(offer));
 
     if (prioritized.length > 0) return prioritized.slice(0, 4);
     return offers.slice(0, 4);
-  }, [insight.recommendedProductIds, offers]);
+  }, [hideRecommendations, insight.recommendedProductIds, offers]);
 
   const selectedOffer = useMemo(
     () => offers.find((offer) => offer.id === journeyState.selectedProductId) ?? recommendedOffers[0] ?? null,
