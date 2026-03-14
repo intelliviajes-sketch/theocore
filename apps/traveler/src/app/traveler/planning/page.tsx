@@ -662,7 +662,7 @@ export default function TravelerPlanningPage() {
         </div>
       }
       right={
-        <div className="space-y-4">
+        <div className="overflow-hidden border border-slate-200/70 bg-white/70 divide-y divide-slate-200/70">
           <TravelerSalesSidebar
             mode="planning"
             offers={featured}
@@ -671,7 +671,7 @@ export default function TravelerPlanningPage() {
             currencyCode={tenant.market?.currencyCode || "EUR"}
           />
 
-          <div className={PANEL_CLASS}>
+          <div className="px-5 py-5">
             <div className="flex items-center justify-between gap-3">
               <div>
                 <h3 className="text-lg font-semibold text-slate-900">Copiloto IA</h3>
@@ -709,7 +709,7 @@ export default function TravelerPlanningPage() {
             ) : null}
           </div>
 
-          <div className={PANEL_CLASS}>
+          <div className="px-5 py-5">
             <div className="flex items-center justify-between gap-3">
               <div>
                 <h3 className="text-lg font-semibold text-slate-900">Preview</h3>
