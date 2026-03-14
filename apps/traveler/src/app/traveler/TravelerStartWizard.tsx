@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import { ArrowRight, Plus, Send, Sparkles } from "lucide-react";
+import { Plus, Send, Sparkles } from "lucide-react";
 import type { CatalogProduct } from "@/lib/catalog/travelers";
 
 type ProductTypeLite = {
@@ -136,7 +136,7 @@ export default function TravelerStartWizard({
         <div className="mx-auto mb-5 w-full max-w-2xl rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
           <div className="flex flex-wrap items-center gap-2">
             <p className="shrink-0 text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">
-              Tipo rapido
+              Un plan rapido
             </p>
             <div className="flex flex-wrap gap-2">
               {quickTypes.map((type) => (
@@ -162,10 +162,10 @@ export default function TravelerStartWizard({
             <button
               type="button"
               onClick={handleOpenPlanning}
-              className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-slate-900 text-white transition-colors hover:bg-slate-800"
+              className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-slate-900 text-white transition-colors hover:bg-slate-800"
               title="Abrir planning completo"
             >
-              <Plus className="h-4 w-4" />
+              <Plus className="h-3.5 w-3.5" />
             </button>
           </div>
           <p className="mt-2 text-left text-xs text-slate-500">
@@ -184,7 +184,7 @@ export default function TravelerStartWizard({
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
               placeholder="Ej: viaje a Japon en primavera para dos personas..."
-              className="w-full flex-1 truncate border-none bg-transparent py-3 text-base text-slate-800 placeholder:text-slate-400 focus:outline-none md:py-4 md:text-lg"
+              className="w-full flex-1 truncate border-none bg-transparent py-4 text-base text-slate-800 placeholder:text-slate-400 focus:outline-none md:py-5 md:text-lg"
             />
             <button
               type="submit"
@@ -195,17 +195,6 @@ export default function TravelerStartWizard({
             </button>
           </div>
         </form>
-
-        <div className="mt-8 flex flex-row flex-wrap items-center justify-center gap-4">
-          <button
-            type="button"
-            onClick={() => handleChatSubmit()}
-            className="inline-flex items-center gap-2 rounded-full border border-orange-500/20 bg-orange-500/10 px-6 py-3 text-sm font-semibold text-orange-700 transition-colors hover:bg-orange-500/20"
-          >
-            <ArrowRight className="h-4 w-4" />
-            Conversar con IVI directo
-          </button>
-        </div>
 
         {featured.length > 0 && (
           <div className="mt-14 text-center">
