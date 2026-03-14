@@ -1,16 +1,15 @@
 name: Vercel Deploy
 
 on:
-  pull_request:
   push:
     branches:
-      - main
-      - master
+      - "**"
+  pull_request:
   workflow_dispatch:
 
 jobs:
   deploy-preview:
-    if: github.event_name == 'pull_request'
+    if: github.event_name == 'pull_request' || (github.event_name == 'push' && github.ref_name != 'main' && github.ref_name != 'master')
     runs-on: ubuntu-latest
     timeout-minutes: 30
     strategy:
@@ -59,7 +58,7 @@ jobs:
           VERCEL_PROJECT_ID: ${{ secrets[matrix.project_id_secret] }}
 
   deploy-production:
-    if: github.event_name == 'push'
+    if: github.event_name == 'push' && (github.ref_name == 'main' || github.ref_name == 'master')
     runs-on: ubuntu-latest
     timeout-minutes: 30
     strategy:

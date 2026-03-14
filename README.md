@@ -87,7 +87,7 @@ Se anadio el workflow:
 
 Comportamiento:
 
-1. En `pull_request`, crea deploy de preview para:
+1. En push a cualquier rama que no sea `main/master`, crea deploy de preview para:
    - `apps/intranet`
    - `apps/traveler`
 2. En push a `main` o `master`, hace deploy de produccion para ambas apps.
