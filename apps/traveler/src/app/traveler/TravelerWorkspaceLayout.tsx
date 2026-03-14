@@ -2,8 +2,7 @@
 
 import { useState, useMemo, type ReactNode } from "react";
 import { BottomSheetModal } from "./BottomSheetModal";
-import { Layers, Maximize, Minimize } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { Layers } from "lucide-react";
 import { useTravelerWorkspace } from "./TravelerWorkspaceContext";
 import { useTravelerCatalog } from "@/contexts/traveler-catalog";
 import { motion, AnimatePresence } from "motion/react";
@@ -18,7 +17,6 @@ export default function TravelerWorkspaceLayout({
   right: ReactNode;
 }) {
   const [isMobilePanelOpen, setIsMobilePanelOpen] = useState(false);
-  const [fullFocus, setFullFocus] = useState(false);
   const hasRightPanel = right !== null && right !== undefined && right !== false;
 
   const { journeyState } = useTravelerWorkspace();
@@ -53,36 +51,13 @@ export default function TravelerWorkspaceLayout({
 
       <div className="trav-container flex-1 flex flex-col h-full overflow-hidden relative z-10">
         {topBar ? <div className="mb-3 shrink-0">{topBar}</div> : null}
-        {hasRightPanel ? (
-          <div className="mb-2 hidden justify-end xl:flex">
-            <button
-              onClick={() => setFullFocus(!fullFocus)}
-              className="flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white/80 text-slate-600 shadow-sm backdrop-blur-md transition-all hover:bg-white hover:text-amber-500 hover:scale-105 active:scale-95"
-              aria-label={fullFocus ? "Salir de Full Focus" : "Entrar a Full Focus"}
-              title={fullFocus ? "Salir de Full Focus" : "Full Focus"}
-            >
-              {fullFocus ? <Minimize className="h-4 w-4" /> : <Maximize className="h-4 w-4" />}
-            </button>
-          </div>
-        ) : null}
-
-        <div
-          className={cn(
-            "trav-grid flex-1 overflow-hidden transition-all duration-500 ease-in-out",
-            fullFocus && "!block",
-          )}
-        >
+        <div className="trav-grid flex-1 overflow-hidden transition-all duration-500 ease-in-out">
           <section className="trav-reveal h-full overflow-hidden relative transition-all duration-500 min-w-0">
             {left}
           </section>
 
           {hasRightPanel ? (
-            <aside
-              className={cn(
-                "trav-reveal hidden xl:block h-full overflow-y-auto pr-1 pb-4 transition-all duration-500",
-                fullFocus && "!hidden opacity-0 translate-x-12",
-              )}
-            >
+            <aside className="trav-reveal hidden xl:block h-full overflow-y-auto pr-1 pb-4 transition-all duration-500">
               {right}
             </aside>
           ) : null}
