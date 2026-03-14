@@ -12,7 +12,7 @@ export default function TravelerLandingPage() {
   const router = useRouter();
   const tenant = useTenant();
   const { featured } = useTravelerCatalog();
-  const { beginJourneyFromMode } = useTravelerWorkspace();
+  const { beginJourneyFromMode, updatePlanningState } = useTravelerWorkspace();
 
   const brandName = useMemo(() => getTenantBrandName(tenant), [tenant]);
   const localeLabel = useMemo(() => getTenantLocaleLabel(tenant), [tenant]);
@@ -23,7 +23,17 @@ export default function TravelerLandingPage() {
     router.push(url);
   }
 
-  function onStartPlanning() {
+  function onStartPlanning(prefill?: {
+    typeId?: string;
+    formData?: Record<string, unknown>;
+  }) {
+    if (prefill?.typeId) {
+      updatePlanningState({
+        selectedTypeId: prefill.typeId,
+        selectedVersionId: null,
+        formData: prefill.formData ?? {},
+      });
+    }
     beginJourneyFromMode("planning");
     router.push("/traveler/planning");
   }
@@ -39,6 +49,7 @@ export default function TravelerLandingPage() {
         <TravelerStartWizard
           brandName={brandName}
           localeLabel={localeLabel}
+          agencyId={tenant.agency?.id ?? null}
           featuredItems={featured}
           onStartChat={onStartChat}
           onStartPlanning={onStartPlanning}
