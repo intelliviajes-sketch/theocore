@@ -9,6 +9,9 @@ import { validateAgencyForm } from "@/lib/validation/theocore";
 import { downloadCsv } from "@/lib/utils/csv";
 import {
   type Agency,
+  type AgencyBrainAssignment,
+  type AgencyDomain,
+  type AgencyMarketConfig,
   type AgencySavePayload,
   useGlobalAgencies,
 } from "@/hooks/theocore/useGlobalAgencies";
@@ -21,6 +24,9 @@ function AgencyFormModal({
   countries,
   brains,
   assignedBrainIds,
+  assignedBrainDetails,
+  agencyDomains,
+  agencyMarketConfigs,
   onClose,
   onSave,
   onSaved,
@@ -28,8 +34,19 @@ function AgencyFormModal({
   open: boolean;
   agency: Agency | null;
   countries: Array<{ code: string; name: string; emoji_flag: string }>;
-  brains: Array<{ id: string; name: string; active: boolean; target_lang: string | null }>;
+  brains: Array<{
+    id: string;
+    name: string;
+    active: boolean;
+    target_lang: string | null;
+    scope: "global" | "agency" | null;
+    owner_agency_id: string | null;
+    created_for_agency_id: string | null;
+  }>;
   assignedBrainIds: string[];
+  assignedBrainDetails: AgencyBrainAssignment[];
+  agencyDomains: AgencyDomain[];
+  agencyMarketConfigs: AgencyMarketConfig[];
   onClose: () => void;
   onSave: (payload: AgencySavePayload) => Promise<void>;
   onSaved: (message: string) => Promise<void>;
@@ -46,13 +63,31 @@ function AgencyFormModal({
   const [bankInformation, setBankInformation] = useState("{}");
   const [active, setActive] = useState(true);
   const [selectedBrains, setSelectedBrains] = useState<string[]>([]);
+  const [domainsJson, setDomainsJson] = useState("[]");
+  const [marketConfigJson, setMarketConfigJson] = useState("[]");
+  const [brainAssignmentsJson, setBrainAssignmentsJson] = useState("[]");
   const { error } = useToast();
+
+  const availableBrains = useMemo(() => {
+    const agencyId = agency?.id ?? null;
+    return brains.filter((brain) => {
+      if (brain.scope === "global" || brain.scope === null) return true;
+      if (!agencyId) return false;
+      return brain.owner_agency_id === agencyId || brain.created_for_agency_id === agencyId;
+    });
+  }, [brains, agency?.id]);
+
+  const availableBrainIds = useMemo(
+    () => new Set(availableBrains.map((brain) => brain.id)),
+    [availableBrains],
+  );
 
   useEffect(() => {
     if (!open) return;
+    const nextCountryCode = agency?.country_code ?? countries[0]?.code ?? "ES";
     setCommercialName(agency?.commercial_name ?? "");
     setLegalName(agency?.legal_name ?? "");
-    setCountryCode(agency?.country_code ?? countries[0]?.code ?? "ES");
+    setCountryCode(nextCountryCode);
     setAddress(agency?.address ?? "");
     setWhatsapp(agency?.whatsapp ?? "");
     setEmailContact(agency?.email_contact ?? "");
@@ -60,13 +95,106 @@ function AgencyFormModal({
     setTaxId(agency?.tax_id ?? "");
     setBankInformation(JSON.stringify(agency?.bank_information ?? {}, null, 2));
     setActive(agency?.active ?? true);
-    setSelectedBrains(assignedBrainIds);
-  }, [agency, assignedBrainIds, countries, open]);
+    setSelectedBrains(assignedBrainIds.filter((brainId) => availableBrainIds.has(brainId)));
+    setDomainsJson(
+      JSON.stringify(
+        agencyDomains.length > 0
+          ? agencyDomains
+          : [{ domain: "", country_code: nextCountryCode, is_primary: true, active: true }],
+        null,
+        2,
+      ),
+    );
+    setMarketConfigJson(
+      JSON.stringify(
+        agencyMarketConfigs.length > 0
+          ? agencyMarketConfigs
+          : [
+              {
+                country_code: nextCountryCode,
+                language_code: "es",
+                currency_code: "EUR",
+                timezone: "Europe/Madrid",
+                default_brain_id: null,
+                active: true,
+              },
+            ],
+        null,
+        2,
+      ),
+    );
+    setBrainAssignmentsJson(
+      JSON.stringify(
+        assignedBrainDetails.length > 0
+          ? assignedBrainDetails
+          : assignedBrainIds
+              .filter((brainId) => availableBrainIds.has(brainId))
+              .map((brainId) => ({
+                ai_assistant_id: brainId,
+                persona_profile: null,
+                strategic_concept: null,
+                market_segment: null,
+                monetization_model: "commission",
+                visibility_level: "agency_only",
+                custom_business_rules: {},
+                execution_overrides: {},
+                language_overrides: null,
+              })),
+        null,
+        2,
+      ),
+    );
+  }, [agency, agencyDomains, agencyMarketConfigs, assignedBrainDetails, assignedBrainIds, availableBrainIds, countries, open]);
 
-  const validation = useMemo(
-    () => validateAgencyForm({ commercialName, legalName, countryCode, emailContact, emailEmergency, whatsapp, bankInformation }),
-    [commercialName, legalName, countryCode, emailContact, emailEmergency, whatsapp, bankInformation]
-  );
+  const validation = useMemo(() => {
+    const base = validateAgencyForm({
+      commercialName,
+      legalName,
+      countryCode,
+      emailContact,
+      emailEmergency,
+      whatsapp,
+      bankInformation,
+    });
+
+    const extra: Record<string, string> = {};
+    try {
+      const parsedDomains = JSON.parse(domainsJson || "[]");
+      if (!Array.isArray(parsedDomains)) {
+        extra.domainsJson = "Dominios debe ser un arreglo JSON.";
+      }
+    } catch {
+      extra.domainsJson = "Dominios debe ser JSON valido.";
+    }
+    try {
+      const parsedMarkets = JSON.parse(marketConfigJson || "[]");
+      if (!Array.isArray(parsedMarkets)) {
+        extra.marketConfigJson = "Market config debe ser un arreglo JSON.";
+      }
+    } catch {
+      extra.marketConfigJson = "Market config debe ser JSON valido.";
+    }
+    try {
+      const parsedAssignments = JSON.parse(brainAssignmentsJson || "[]");
+      if (!Array.isArray(parsedAssignments)) {
+        extra.brainAssignmentsJson = "Brain assignments debe ser un arreglo JSON.";
+      }
+    } catch {
+      extra.brainAssignmentsJson = "Brain assignments debe ser JSON valido.";
+    }
+    return { ...base, ...extra };
+  }, [
+    bankInformation,
+    brainAssignmentsJson,
+    commercialName,
+    countryCode,
+    domainsJson,
+    emailContact,
+    emailEmergency,
+    legalName,
+    marketConfigJson,
+    whatsapp,
+  ]);
 
   if (!open) return null;
 
@@ -77,6 +205,25 @@ function AgencyFormModal({
     if (!canSubmit) return;
     setSaving(true);
     try {
+      const parsedDomains = parseJsonArray<AgencyDomain>(domainsJson);
+      const parsedMarketConfigs = parseJsonArray<AgencyMarketConfig>(marketConfigJson);
+      const parsedBrainAssignments = parseJsonArray<AgencyBrainAssignment>(brainAssignmentsJson);
+
+      const normalizedBrainAssignments =
+        parsedBrainAssignments.length > 0
+          ? parsedBrainAssignments
+          : selectedBrains.map((brainId) => ({
+              ai_assistant_id: brainId,
+              persona_profile: null,
+              strategic_concept: null,
+              market_segment: null,
+              monetization_model: "commission",
+              visibility_level: "agency_only",
+              custom_business_rules: {},
+              execution_overrides: {},
+              language_overrides: null,
+            }));
+
       await onSave({
         id: agency?.id,
         commercial_name: commercialName.trim(),
@@ -90,6 +237,9 @@ function AgencyFormModal({
         bank_information: parseJson(bankInformation),
         active,
         brain_ids: selectedBrains,
+        brain_assignments: normalizedBrainAssignments,
+        domains: parsedDomains,
+        market_configs: parsedMarketConfigs,
       });
       await onSaved(agency ? "Agencia actualizada." : "Agencia creada.");
       onClose();
@@ -118,7 +268,11 @@ function AgencyFormModal({
           </div>
           <Field label="Direccion"><input value={address} onChange={(e) => setAddress(e.target.value)} className={inputClass()} /></Field>
           <Field label="Informacion bancaria (JSON)" error={validation.bankInformation}><textarea rows={4} value={bankInformation} onChange={(e) => setBankInformation(e.target.value)} className={`${inputClass(validation.bankInformation)} h-auto py-3 font-mono text-xs`} /></Field>
-          <Field label="Brains asignados"><div className="grid max-h-56 gap-2 overflow-y-auto rounded-2xl border border-slate-200 p-3 dark:border-slate-700">{brains.length === 0 ? <div className="text-sm text-slate-500 dark:text-slate-400">No hay brains disponibles.</div> : brains.map((brain) => { const checked = selectedBrains.includes(brain.id); return <label key={brain.id} className="flex items-center justify-between rounded-2xl border border-slate-200 px-3 py-2 text-sm dark:border-slate-700"><div><div className="font-medium text-slate-800 dark:text-slate-100">{brain.name}</div><div className="text-xs text-slate-500 dark:text-slate-400">{brain.target_lang || "Sin idioma"} · {brain.active ? "Activo" : "Inactivo"}</div></div><input type="checkbox" checked={checked} onChange={() => setSelectedBrains((current) => current.includes(brain.id) ? current.filter((item) => item !== brain.id) : [...current, brain.id])} /></label>; })}</div></Field>
+          <Field label="Brains asignados"><div className="grid max-h-56 gap-2 overflow-y-auto rounded-2xl border border-slate-200 p-3 dark:border-slate-700">{availableBrains.length === 0 ? <div className="text-sm text-slate-500 dark:text-slate-400">No hay brains disponibles para esta agencia.</div> : availableBrains.map((brain) => { const checked = selectedBrains.includes(brain.id); return <label key={brain.id} className="flex items-center justify-between rounded-2xl border border-slate-200 px-3 py-2 text-sm dark:border-slate-700"><div><div className="font-medium text-slate-800 dark:text-slate-100">{brain.name}</div><div className="text-xs text-slate-500 dark:text-slate-400">{brain.target_lang || "Sin idioma"} · {brain.active ? "Activo" : "Inactivo"}</div></div><input type="checkbox" checked={checked} onChange={() => setSelectedBrains((current) => current.includes(brain.id) ? current.filter((item) => item !== brain.id) : [...current, brain.id])} /></label>; })}</div></Field>
+          <Field label="Dominios (agency_domains JSON)" error={validation.domainsJson}><textarea rows={6} value={domainsJson} onChange={(e) => setDomainsJson(e.target.value)} className={`${inputClass(validation.domainsJson)} h-auto py-3 font-mono text-xs`} /></Field>
+          <Field label="Market Config (agency_market_config JSON)" error={validation.marketConfigJson}><textarea rows={6} value={marketConfigJson} onChange={(e) => setMarketConfigJson(e.target.value)} className={`${inputClass(validation.marketConfigJson)} h-auto py-3 font-mono text-xs`} /></Field>
+          <Field label="Brain Assignments (agencies_ai_assistants JSON)" error={validation.brainAssignmentsJson}><textarea rows={8} value={brainAssignmentsJson} onChange={(e) => setBrainAssignmentsJson(e.target.value)} className={`${inputClass(validation.brainAssignmentsJson)} h-auto py-3 font-mono text-xs`} /></Field>
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">Incluye objetos de estas tablas: `agency_domains`, `agency_market_config` y `agencies_ai_assistants`. Si dejas Brain Assignments vacio, se usaran los brains seleccionados arriba con valores por defecto.</div>
           <div className="flex justify-end gap-3 pt-2"><button type="button" onClick={onClose} className="rounded-xl bg-slate-200 px-4 py-2 text-sm font-medium text-slate-800 hover:opacity-90 dark:bg-slate-800 dark:text-slate-200">Cancelar</button><button type="submit" disabled={!canSubmit || saving} className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60">{saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}{agency ? "Guardar cambios" : "Crear agencia"}</button></div>
         </form>
       </div>
@@ -131,6 +285,14 @@ function Field({ label, children, error }: { label: string; children: React.Reac
 }
 
 function parseJson(value: string) { try { return JSON.parse(value || "{}"); } catch { return {}; } }
+function parseJsonArray<T>(value: string) {
+  try {
+    const parsed = JSON.parse(value || "[]");
+    return Array.isArray(parsed) ? (parsed as T[]) : [];
+  } catch {
+    return [] as T[];
+  }
+}
 function inputClass(error?: string) { return `h-11 w-full rounded-2xl border px-4 text-sm outline-none transition dark:bg-slate-950 dark:text-slate-100 ${error ? "border-rose-400 bg-rose-50 text-rose-900 focus:border-rose-500 dark:border-rose-500 dark:bg-rose-950/30" : "border-slate-200 bg-white text-slate-800 focus:border-cyan-500 dark:border-slate-700"}`; }
 function toolbarInputClass() { return "h-11 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-800 outline-none transition focus:border-cyan-500 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"; }
 function pageCount(total: number) { return Math.max(1, Math.ceil(total / PAGE_SIZE)); }
@@ -146,7 +308,7 @@ export default function AgenciesPage() {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [bulkAction, setBulkAction] = useState<null | "archive" | "activate">(null);
   const { success, error } = useToast();
-  const { loading, agencies, countries, brains, brainAssignments, teamCountByAgency, travelerCountByAgency, ownerByAgency, reload, saveAgency, deleteAgency, toggleAgency } = useGlobalAgencies();
+  const { loading, agencies, countries, brains, brainAssignments, brainAssignmentDetailsByAgency, domainByAgency, marketConfigByAgency, teamCountByAgency, travelerCountByAgency, ownerByAgency, reload, saveAgency, deleteAgency, toggleAgency } = useGlobalAgencies();
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -317,7 +479,7 @@ export default function AgenciesPage() {
         {loading ? <div className="flex items-center justify-center gap-3 px-6 py-16 text-sm text-slate-500 dark:text-slate-400"><Loader2 className="h-4 w-4 animate-spin" />Cargando agencias...</div> : filteredRows.length === 0 ? <div className="px-6 py-16 text-center text-sm text-slate-500 dark:text-slate-400">No hay agencias que coincidan con los filtros.</div> : <><div className="flex items-center justify-between px-6 py-4 text-sm text-slate-500 dark:text-slate-400"><span>{filteredRows.length} resultados</span><span>Pagina {safePage} de {totalPages}</span></div><div className="overflow-x-auto"><table className="min-w-full text-sm"><thead className="bg-slate-50/80 text-left text-slate-500 dark:bg-slate-800/60 dark:text-slate-300"><tr><th className="px-4 py-4 font-medium"><input type="checkbox" checked={visibleIds.length > 0 && visibleIds.every((id) => selectedIds.includes(id))} onChange={toggleSelectVisible} /></th><th className="px-6 py-4 font-medium">Agencia</th><th className="px-6 py-4 font-medium">Owner</th><th className="px-6 py-4 font-medium">Pais</th><th className="px-6 py-4 font-medium">Equipo</th><th className="px-6 py-4 font-medium">Viajeros</th><th className="px-6 py-4 font-medium">Brains</th><th className="px-6 py-4 font-medium">Estado</th><th className="px-6 py-4 font-medium">Acciones</th></tr></thead><tbody>{paginatedRows.map((agency) => <tr key={agency.id} className="border-t border-slate-200/70 dark:border-slate-800"><td className="px-4 py-4 align-top"><input type="checkbox" checked={selectedIds.includes(agency.id)} onChange={() => toggleSelection(agency.id)} /></td><td className="px-6 py-4 align-top"><div className="flex items-start gap-3"><div className="rounded-2xl bg-cyan-50 p-2 text-cyan-700 dark:bg-cyan-950 dark:text-cyan-300"><Building2 className="h-4 w-4" /></div><div><div className="font-medium text-slate-900 dark:text-slate-100">{agency.commercial_name}</div><div className="text-xs text-slate-500 dark:text-slate-400">{agency.legal_name}</div><div className="mt-1 text-xs text-slate-500 dark:text-slate-400">{agency.email_contact}</div></div></div></td><td className="px-6 py-4 align-top"><div className="text-slate-700 dark:text-slate-200">{agency.owner?.full_name || "Sin owner"}</div><div className="text-xs text-slate-500 dark:text-slate-400">{agency.owner?.email || "Sin email"}</div></td><td className="px-6 py-4 text-slate-700 dark:text-slate-200">{agency.countryLabel}</td><td className="px-6 py-4 text-slate-700 dark:text-slate-200">{agency.teamCount}</td><td className="px-6 py-4 text-slate-700 dark:text-slate-200">{agency.travelerCount}</td><td className="px-6 py-4 text-slate-700 dark:text-slate-200">{agency.brainCount}</td><td className="px-6 py-4"><span className={`inline-flex rounded-full px-3 py-1 text-xs font-medium ${agency.active ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300" : "bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-300"}`}>{agency.active ? "Activa" : "Inactiva"}</span></td><td className="px-6 py-4"><div className="flex flex-wrap gap-2"><button onClick={() => { setModalAgency(agency); setIsModalOpen(true); }} className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-3 py-2 text-xs font-medium text-white"><Pencil className="h-3.5 w-3.5" />Editar</button><button onClick={() => setConfirmState({ type: "toggle", agency })} className="inline-flex items-center gap-2 rounded-xl bg-amber-500 px-3 py-2 text-xs font-medium text-white"><Power className="h-3.5 w-3.5" />{agency.active ? "Desactivar" : "Activar"}</button><button onClick={() => setConfirmState({ type: "delete", agency })} className="inline-flex items-center gap-2 rounded-xl bg-rose-600 px-3 py-2 text-xs font-medium text-white"><Trash2 className="h-3.5 w-3.5" />Archivar</button></div></td></tr>)}</tbody></table></div><div className="flex items-center justify-between border-t border-slate-200/70 px-6 py-4 dark:border-slate-800"><button type="button" onClick={() => setCurrentPage((page) => Math.max(1, page - 1))} disabled={safePage === 1} className="rounded-xl bg-slate-200 px-4 py-2 text-sm font-medium text-slate-800 disabled:opacity-50 dark:bg-slate-800 dark:text-slate-200">Anterior</button><button type="button" onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))} disabled={safePage === totalPages} className="rounded-xl bg-slate-200 px-4 py-2 text-sm font-medium text-slate-800 disabled:opacity-50 dark:bg-slate-800 dark:text-slate-200">Siguiente</button></div></>}
       </CrudPageShell>
 
-      <AgencyFormModal open={isModalOpen} agency={modalAgency} countries={countries} brains={brains} assignedBrainIds={modalAgency ? brainAssignments[modalAgency.id] || [] : []} onClose={() => setIsModalOpen(false)} onSave={saveAgency} onSaved={async (message) => { await reload(); success(message); }} />
+      <AgencyFormModal open={isModalOpen} agency={modalAgency} countries={countries} brains={brains} assignedBrainIds={modalAgency ? brainAssignments[modalAgency.id] || [] : []} assignedBrainDetails={modalAgency ? brainAssignmentDetailsByAgency[modalAgency.id] || [] : []} agencyDomains={modalAgency ? domainByAgency[modalAgency.id] || [] : []} agencyMarketConfigs={modalAgency ? marketConfigByAgency[modalAgency.id] || [] : []} onClose={() => setIsModalOpen(false)} onSave={saveAgency} onSaved={async (message) => { await reload(); success(message); }} />
 
       {confirmState ? <ConfirmDialog title={confirmState.type === "delete" ? "Archivar agencia" : "Cambiar estado de la agencia"} message={confirmState.type === "delete" ? `Se archivara ${confirmState.agency.commercial_name} y quedara inactiva sin borrar sus relaciones.` : `Se actualizara el estado de ${confirmState.agency.commercial_name}.`} confirmText={confirmState.type === "delete" ? "Archivar" : "Confirmar"} confirmVariant={confirmState.type === "delete" ? "danger" : "primary"} onCancel={() => setConfirmState(null)} onConfirm={async () => { const current = confirmState; setConfirmState(null); if (current.type === "delete") await handleDeleteAgency(current.agency); else await handleToggleAgency(current.agency); }} /> : null}
 
@@ -325,3 +487,4 @@ export default function AgenciesPage() {
     </>
   );
 }
+
