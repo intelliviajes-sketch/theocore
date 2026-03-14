@@ -68,9 +68,17 @@ export default function TravelerChatPage() {
   const focusedProductRef = useRef<string | null>(null);
   const initialQueryRef = useRef(false);
   const messages = chatMessages;
+  const queryFromLanding = (searchParams.get("q") || "").trim();
+  const productFromCatalog = (searchParams.get("product") || "").trim();
+  const suppressCatalogSuggestions = queryFromLanding.length > 0 && productFromCatalog.length === 0;
   const catalogContext = useMemo(
-    () => featured.map((item) => `ID: ${item.id} - ${item.title}${item.destination ? ` (${item.destination})` : ""}`).join(" | "),
-    [featured],
+    () =>
+      suppressCatalogSuggestions
+        ? ""
+        : featured
+            .map((item) => `ID: ${item.id} - ${item.title}${item.destination ? ` (${item.destination})` : ""}`)
+            .join(" | "),
+    [featured, suppressCatalogSuggestions],
   );
 
   const sensors = useSensors(
@@ -309,7 +317,7 @@ export default function TravelerChatPage() {
   }, []);
 
   useEffect(() => {
-    const focusedProductId = searchParams.get("product");
+    const focusedProductId = productFromCatalog;
     if (!focusedProductId || focusedProductRef.current === focusedProductId) {
       return;
     }
@@ -336,10 +344,10 @@ export default function TravelerChatPage() {
       title: focused.title,
       source: "catalog",
     });
-  }, [featured, searchParams, selectJourneyProduct, touchJourneyEntry]);
+  }, [featured, productFromCatalog, selectJourneyProduct, touchJourneyEntry]);
 
   useEffect(() => {
-    const query = searchParams.get("q");
+    const query = queryFromLanding;
     if (query && !initialQueryRef.current && activeBrain) {
       initialQueryRef.current = true;
       setInput(query);
@@ -348,7 +356,7 @@ export default function TravelerChatPage() {
       }, 400);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams, activeBrain]);
+  }, [queryFromLanding, activeBrain]);
 
   useEffect(() => {
     let cancelled = false;
@@ -410,6 +418,7 @@ export default function TravelerChatPage() {
             user={user}
             setInput={setInput}
             offers={featured}
+            showSuggestedOffers={!suppressCatalogSuggestions}
             onSelectOffer={(offer) => {
               void onSelectOffer(offer);
             }}
@@ -423,7 +432,7 @@ export default function TravelerChatPage() {
         right={
           <TravelerSalesSidebar
             mode="chat"
-            offers={featured}
+            offers={suppressCatalogSuggestions ? [] : featured}
             brandName={brandName}
             currencyCode={tenant.market?.currencyCode || "EUR"}
           />

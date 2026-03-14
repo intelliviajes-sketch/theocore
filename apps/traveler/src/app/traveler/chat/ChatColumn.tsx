@@ -19,6 +19,7 @@ interface ChatColumnProps {
   onSend: FormEventHandler<HTMLFormElement>;
   offers?: CatalogProduct[];
   onSelectOffer?: (offer: CatalogProduct) => void;
+  showSuggestedOffers?: boolean;
 }
 
 function renderInlineMarkdown(text: string) {
@@ -403,6 +404,7 @@ export default function ChatColumn({
   onSend,
   offers = [],
   onSelectOffer,
+  showSuggestedOffers = true,
 }: ChatColumnProps) {
   const [openOffer, setOpenOffer] = useState<CatalogProduct | null>(null);
   const [openOfferTab, setOpenOfferTab] = useState<OfferTab>("overview");
@@ -521,7 +523,7 @@ export default function ChatColumn({
                   </div>
                 </div>
 
-                {message.role === "assistant" && index === lastAssistantIndex && topOffers.length > 0 ? (
+                {showSuggestedOffers && message.role === "assistant" && index === lastAssistantIndex && topOffers.length > 0 ? (
                   <div className="trav-glass-soft rounded-2xl p-4 w-full">
                     <p className="text-xs font-semibold text-slate-700">
                       Opciones sugeridas
