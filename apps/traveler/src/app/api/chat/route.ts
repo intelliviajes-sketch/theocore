@@ -171,10 +171,60 @@ function buildResponseProfileInstruction(profile: ResponseProfile) {
   ].join("\n");
 }
 
-function buildSystemInstruction(system: string, profile: ResponseProfile) {
+function pickBrainString(brain: Brain, key: string) {
+  if (!brain || typeof brain !== "object") return "";
+  const value = brain[key];
+  return typeof value === "string" ? value.trim() : "";
+}
+
+function pickBrainStringArray(brain: Brain, key: string) {
+  if (!brain || typeof brain !== "object") return [];
+  const value = brain[key];
+  if (!Array.isArray(value)) return [];
+  return value
+    .filter((item): item is string => typeof item === "string")
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function buildBrainInstruction(brain: Brain) {
+  if (!brain || typeof brain !== "object") return "";
+
+  const name = pickBrainString(brain, "name");
+  const systemPrompt = pickBrainString(brain, "system_prompt");
+  const strategicConcept = pickBrainString(brain, "strategic_concept");
+  const personaProfile = pickBrainString(brain, "persona_profile");
+  const marketSegment = pickBrainString(brain, "market_segment");
+  const targetLang = pickBrainString(brain, "target_lang");
+  const languagePriority = pickBrainStringArray(brain, "language_priority");
+  const capabilities = pickBrainStringArray(brain, "capabilities");
+  const businessRules = brain.business_rules;
+  const businessRulesText =
+    businessRules && typeof businessRules === "object" ? JSON.stringify(businessRules) : "";
+
+  const lines = [
+    name ? `AI_BRAIN_NAME: ${name}` : "",
+    targetLang ? `AI_BRAIN_TARGET_LANG: ${targetLang}` : "",
+    languagePriority.length > 0 ? `AI_BRAIN_LANGUAGE_PRIORITY: ${languagePriority.join(", ")}` : "",
+    marketSegment ? `AI_BRAIN_MARKET_SEGMENT: ${marketSegment}` : "",
+    capabilities.length > 0 ? `AI_BRAIN_CAPABILITIES: ${capabilities.join(", ")}` : "",
+    personaProfile ? `AI_BRAIN_PERSONA: ${personaProfile}` : "",
+    strategicConcept ? `AI_BRAIN_STRATEGIC_CONCEPT: ${strategicConcept}` : "",
+    systemPrompt ? `AI_BRAIN_SYSTEM_PROMPT: ${systemPrompt}` : "",
+    businessRulesText ? `AI_BRAIN_BUSINESS_RULES: ${businessRulesText}` : "",
+  ].filter(Boolean);
+
+  if (lines.length === 0) return "";
+  const joined = lines.join("\n");
+  return joined.length > 6000 ? joined.slice(0, 6000) : joined;
+}
+
+function buildSystemInstruction(system: string, profile: ResponseProfile, brain: Brain) {
+  const brainInstruction = buildBrainInstruction(brain);
+  const baseSystem = [system, brainInstruction].filter(Boolean).join("\n\n");
   const profileInstruction = buildResponseProfileInstruction(profile);
-  if (!profileInstruction) return system;
-  return system ? `${system}\n\n${profileInstruction}` : profileInstruction;
+  if (!profileInstruction) return baseSystem;
+  return baseSystem ? `${baseSystem}\n\n${profileInstruction}` : profileInstruction;
 }
 
 function normalizeResponseProfile(value: unknown): ResponseProfile {
@@ -420,7 +470,7 @@ export async function POST(req: Request) {
 
     const normalizedProfile = normalizeResponseProfile(responseProfile);
     const { system, rest } = splitSystem(normalizedMessages);
-    const effectiveSystem = buildSystemInstruction(system, normalizedProfile);
+    const effectiveSystem = buildSystemInstruction(system, normalizedProfile, brain);
 
     if (stream) {
       const rs = streamFromAsyncIterable(

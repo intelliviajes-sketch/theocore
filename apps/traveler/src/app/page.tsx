@@ -42,6 +42,18 @@ export default function Page() {
   const tenant = useTenant();
   const brandName = getTenantBrandName(tenant);
   const localeLabel = getTenantLocaleLabel(tenant);
+  const intranetLoginUrl = useMemo(() => {
+    const configuredBase = (process.env.NEXT_PUBLIC_INTRANET_URL || "").trim();
+    if (!configuredBase) return "/intranet/login";
+    const normalizedBase = configuredBase.replace(/\/+$/, "");
+    return normalizedBase.endsWith("/login") ? normalizedBase : `${normalizedBase}/login`;
+  }, []);
+  const heroTitle = tenant.kind === "agency"
+    ? `${brandName}: inteligencia de viajes para tu agencia`
+    : "TheoCore: inteligencia central para la gestion global de agencias";
+  const heroSubtitle = tenant.kind === "agency"
+    ? `Portal inteligente de ${brandName}. Automatiza la atencion, centraliza operaciones y escala ventas con IA para ${localeLabel}.`
+    : "Unifica, automatiza y expande operaciones en multiples paises bajo el dominio de la IA. Decisiones impulsadas por datos, control corporativo en tiempo real.";
   const isMobile = useMediaQuery("(max-width: 768px)");
   const particleCount = isMobile ? 30 : 80;
   const starCount = 20; // Constante para el numero de estrellas de fondo
@@ -92,9 +104,9 @@ export default function Page() {
   const goLogin = useCallback(() => {
     setExiting(true);
     setTimeout(() => {
-      window.location.href = "/intranet/login";
+      window.location.href = intranetLoginUrl;
     }, 600);
-  }, []);
+  }, [intranetLoginUrl]);
 
   // Animacion del logo mejorada
   const logoMotion = useMemo(
@@ -398,7 +410,7 @@ export default function Page() {
                   WebkitTextFillColor: 'transparent',
                 }}
               >
-                TheoCore: Inteligencia central para la gestion global de agencias
+                {heroTitle}
               </motion.span>
             </motion.h1>
 
@@ -408,9 +420,7 @@ export default function Page() {
               transition={{ delay: 0.35, duration: 0.7 }}
               className="mx-auto mt-2 max-w-2xl text-white/80"
             >
-              Unifica, automatiza y expande operaciones en multiples paises bajo el
-              dominio de la IA. Decisiones impulsadas por datos, control corporativo
-              en tiempo real.
+              {heroSubtitle}
             </motion.p>
 
             <motion.div
@@ -677,27 +687,6 @@ export default function Page() {
           </section>
         </>
       )}
-
-
-      {/* Animaciones CSS clave mejoradas */}
-      <style jsx global>{`
-        @keyframes floatY {
-          0% { transform: translateY(0) translateX(0); opacity: 0.6; }
-          50% { transform: translateY(-18px) translateX(4px); opacity: 0.95; }
-          100% { transform: translateY(0) translateX(0); opacity: 0.6; }
-        }
-        @keyframes dashMove {
-          0% { stroke-dashoffset: 740; }
-          100% { stroke-dashoffset: 0; }
-        }
-        @keyframes pulse-slow {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0.7; }
-        }
-        .animate-pulse-slow {
-          animation: pulse-slow 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-        }
-      `}</style>
     </main>
   );
 }

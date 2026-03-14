@@ -307,3 +307,41 @@
          text-slate-800 text-sm
          focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500;
 }
+
+@keyframes floatY {
+  0% {
+    transform: translateY(0) translateX(0);
+    opacity: 0.6;
+  }
+  50% {
+    transform: translateY(-18px) translateX(4px);
+    opacity: 0.95;
+  }
+  100% {
+    transform: translateY(0) translateX(0);
+    opacity: 0.6;
+  }
+}
+
+@keyframes dashMove {
+  0% {
+    stroke-dashoffset: 740;
+  }
+  100% {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes pulse-slow {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+.animate-pulse-slow {
+  animation: pulse-slow 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
