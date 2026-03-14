@@ -254,7 +254,10 @@ export default function TravelerPlanningPage() {
 
     const run = async () => {
       const agencyId = tenant.kind === "agency" ? tenant.agency?.id ?? null : null;
-      const list = (await loadBrainsForTenant(agencyId)) as unknown as Brain[];
+      const list = (await loadBrainsForTenant(agencyId, {
+        executionLayer: "frontend",
+        allowedCategories: ["traveler"],
+      })) as unknown as Brain[];
       if (cancelled) return;
       setBrains(list);
       const nextBrain = pickBestPlanningBrain(list, tenant.market?.defaultBrainId);

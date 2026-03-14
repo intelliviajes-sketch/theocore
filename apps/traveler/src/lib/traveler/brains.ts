@@ -5,9 +5,16 @@ type BrainRow = {
   name: string;
   active: boolean;
   scope: string | null;
+  execution_layer?: string | null;
+  brain_category?: string | null;
   owner_agency_id: string | null;
   created_for_agency_id: string | null;
   brain_type?: string | null;
+};
+
+type LoadBrainsOptions = {
+  executionLayer?: "frontend" | "backend";
+  allowedCategories?: string[];
 };
 
 function normalizeAgencyId(value: string | null | undefined) {
@@ -56,6 +63,21 @@ function isBrainEligibleForAgency(brain: BrainRow, agencyId: string | null) {
   return false;
 }
 
+function matchesOptions(brain: BrainRow, options?: LoadBrainsOptions) {
+  if (!options) return true;
+
+  if (options.executionLayer && brain.execution_layer !== options.executionLayer) {
+    return false;
+  }
+
+  if (options.allowedCategories && options.allowedCategories.length > 0) {
+    if (!brain.brain_category) return false;
+    if (!options.allowedCategories.includes(brain.brain_category)) return false;
+  }
+
+  return true;
+}
+
 async function loadGlobalBrains() {
   const { data, error } = await supabase
     .from("ai_assistants")
@@ -72,12 +94,13 @@ async function loadGlobalBrains() {
   return (data ?? []) as BrainRow[];
 }
 
-export async function loadBrainsForTenant(agencyId: string | null) {
+export async function loadBrainsForTenant(agencyId: string | null, options?: LoadBrainsOptions) {
   const scopedAgencyId = normalizeAgencyId(agencyId);
 
   if (!scopedAgencyId) {
     const globals = await loadGlobalBrains();
-    return sortBrains(dedupeBrains(globals), null);
+    const filtered = globals.filter((brain) => matchesOptions(brain, options));
+    return sortBrains(dedupeBrains(filtered), null);
   }
 
   const { data: links, error: linksError } = await supabase
@@ -104,7 +127,7 @@ export async function loadBrainsForTenant(agencyId: string | null) {
       console.error("Error cargando brains asignados:", linkedBrainsError);
     } else {
       const filtered = ((linkedBrains ?? []) as BrainRow[]).filter((brain) =>
-        isBrainEligibleForAgency(brain, scopedAgencyId),
+        isBrainEligibleForAgency(brain, scopedAgencyId) && matchesOptions(brain, options),
       );
       if (filtered.length > 0) {
         return sortBrains(dedupeBrains(filtered), scopedAgencyId);
@@ -130,7 +153,7 @@ export async function loadBrainsForTenant(agencyId: string | null) {
   const combined = dedupeBrains([
     ...((agencyBrains ?? []) as BrainRow[]),
     ...globalBrains,
-  ]).filter((brain) => isBrainEligibleForAgency(brain, scopedAgencyId));
+  ]).filter((brain) => isBrainEligibleForAgency(brain, scopedAgencyId) && matchesOptions(brain, options));
 
   return sortBrains(combined, scopedAgencyId);
 }
