@@ -180,11 +180,6 @@ function formatMoney(value: number | null) {
 
 type OfferTier = "own" | "adapted" | "sponsored";
 type OfferTab = "overview" | "itinerary" | "costs" | "conditions";
-const QUICK_PROMPTS = [
-  "Quiero un plan de 3 dias en Madrid con presupuesto medio.",
-  "Busco una escapada romantica para fin de semana.",
-  "Comparame 3 opciones para viajar con mi familia.",
-];
 
 function offerTierPriority(tier: OfferTier) {
   if (tier === "own") return 0;
@@ -416,11 +411,9 @@ export default function ChatColumn({
   const openOfferData = useMemo(() => (openOffer ? readTabData(openOffer) : null), [openOffer]);
   const compactCards = compactMode;
   const cardsGridClass = "mt-3 grid gap-2 md:grid-cols-2 xl:grid-cols-3";
-  const emptyStateMessage = isLandingPromptFlow
-    ? (showLandingProcessing ? "Procesando tu mensaje..." : "Escribe tu mensaje para continuar.")
-    : activeBrain
-      ? `Hola, soy IVI. ${activeBrain.name} esta listo para ayudarte.`
-      : "Hola, soy IVI. Cuentame a donde quieres viajar.";
+  const emptyStateMessage = isLandingPromptFlow && showLandingProcessing
+    ? "Procesando tu mensaje..."
+    : "";
 
   return (
     <div className="trav-panel trav-glass trav-reveal flex h-[clamp(320px,calc(100dvh-17rem),780px)] w-full flex-col overflow-hidden rounded-3xl transition-shadow duration-300 focus-within:shadow-[0_22px_48px_-38px_rgba(15,23,42,0.38)] sm:h-[clamp(380px,calc(100dvh-15.5rem),820px)] lg:h-[calc(100dvh-13.75rem)]">
@@ -469,9 +462,7 @@ export default function ChatColumn({
               <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-3xl bg-gradient-to-br from-amber-300 to-amber-500 text-sm font-semibold text-slate-900 ring-1 ring-amber-200/80 sm:h-20 sm:w-20 sm:text-base">
                 AI
               </div>
-              <p className="text-sm font-medium text-slate-600">
-                {emptyStateMessage}
-              </p>
+              {emptyStateMessage ? <p className="text-sm font-medium text-slate-600">{emptyStateMessage}</p> : null}
             </div>
           </div>
         ) : (
@@ -599,22 +590,7 @@ export default function ChatColumn({
 
       {/* STICKY CHAT INPUT */}
       <div className="absolute bottom-4 left-4 right-4 z-20 flex flex-col sm:bottom-6 sm:left-6 sm:right-6">
-        {messages.length === 0 ? (
-          !isLandingPromptFlow ? (
-            <div className="mb-4 flex flex-wrap justify-center gap-2">
-              {QUICK_PROMPTS.map((prompt) => (
-                <button
-                  key={prompt}
-                  type="button"
-                  onClick={() => setInput(prompt)}
-                  className="rounded-full border border-white/60 bg-white/70 px-4 py-2 text-xs sm:text-[13px] font-medium text-slate-700 shadow-sm backdrop-blur-md transition hover:border-amber-200 hover:bg-white"
-                >
-                  {prompt}
-                </button>
-              ))}
-            </div>
-          ) : null
-        ) : (
+        {messages.length === 0 ? null : (
           !sending && (
           <div className="mb-3 flex w-full overflow-x-auto scrollbar-hide space-x-2 px-1">
             {[
