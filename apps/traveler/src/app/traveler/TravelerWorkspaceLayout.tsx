@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useMemo, type ReactNode } from "react";
 import { BottomSheetModal } from "./BottomSheetModal";
@@ -19,6 +19,7 @@ export default function TravelerWorkspaceLayout({
 }) {
   const [isMobilePanelOpen, setIsMobilePanelOpen] = useState(false);
   const [fullFocus, setFullFocus] = useState(false);
+  const hasRightPanel = right !== null && right !== undefined && right !== false;
 
   const { journeyState } = useTravelerWorkspace();
   const { featured } = useTravelerCatalog();
@@ -32,8 +33,6 @@ export default function TravelerWorkspaceLayout({
 
   return (
     <div className="trav-page bg-[radial-gradient(900px_360px_at_90%_-5%,rgba(251,191,36,0.16),transparent_60%),linear-gradient(180deg,#ffffff_0%,#f8fafc_100%)] h-[100dvh] overflow-hidden flex flex-col relative transition-colors duration-500">
-      
-      {/* Immersive Background */}
       <AnimatePresence>
         {bgImage && (
           <motion.div
@@ -44,7 +43,7 @@ export default function TravelerWorkspaceLayout({
             transition={{ duration: 1.5, ease: "easeInOut" }}
             className="absolute inset-0 z-0 pointer-events-none"
           >
-            <div 
+            <div
               className="absolute inset-0 bg-cover bg-center bg-no-repeat blur-[6px] saturate-150 mix-blend-multiply"
               style={{ backgroundImage: `url(${bgImage})` }}
             />
@@ -55,27 +54,28 @@ export default function TravelerWorkspaceLayout({
       <div className="trav-container flex-1 flex flex-col h-full overflow-hidden relative z-10">
         {topBar ? <div className="mb-3 shrink-0">{topBar}</div> : null}
 
-        <div 
+        <div
           className={cn(
             "trav-grid flex-1 overflow-hidden transition-all duration-500 ease-in-out",
-            fullFocus && "!block"
+            fullFocus && "!block",
           )}
         >
           <section className="trav-reveal h-full overflow-hidden relative transition-all duration-500 min-w-0">
             {left}
           </section>
-          
-          <aside 
-            className={cn(
-              "trav-reveal hidden xl:block h-full overflow-y-auto pr-1 pb-4 transition-all duration-500",
-              fullFocus && "!hidden opacity-0 translate-x-12"
-            )}
-          >
-            {right}
-          </aside>
+
+          {hasRightPanel ? (
+            <aside
+              className={cn(
+                "trav-reveal hidden xl:block h-full overflow-y-auto pr-1 pb-4 transition-all duration-500",
+                fullFocus && "!hidden opacity-0 translate-x-12",
+              )}
+            >
+              {right}
+            </aside>
+          ) : null}
         </div>
 
-        {/* Full Focus Button for Desktop */}
         <button
           onClick={() => setFullFocus(!fullFocus)}
           className="hidden xl:flex absolute top-2 right-4 z-40 h-10 w-10 items-center justify-center rounded-full bg-white/80 backdrop-blur-md border border-slate-200 shadow-sm text-slate-600 transition-all hover:bg-white hover:text-amber-500 hover:scale-105 active:scale-95"
@@ -85,23 +85,26 @@ export default function TravelerWorkspaceLayout({
           {fullFocus ? <Minimize className="h-4 w-4" /> : <Maximize className="h-4 w-4" />}
         </button>
 
-        {/* Floating Action Button for Mobile */}
-        <button
-          onClick={() => setIsMobilePanelOpen(true)}
-          className="fixed bottom-6 right-6 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-r from-amber-400 to-amber-500 shadow-xl shadow-amber-500/30 transition-transform active:scale-95 xl:hidden"
-          aria-label="Abrir Panel de Control"
-        >
-          <Layers className="h-6 w-6 text-slate-900" />
-        </button>
+        {hasRightPanel ? (
+          <button
+            onClick={() => setIsMobilePanelOpen(true)}
+            className="fixed bottom-6 right-6 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-r from-amber-400 to-amber-500 shadow-xl shadow-amber-500/30 transition-transform active:scale-95 xl:hidden"
+            aria-label="Abrir Panel de Control"
+          >
+            <Layers className="h-6 w-6 text-slate-900" />
+          </button>
+        ) : null}
       </div>
 
-      <BottomSheetModal
-        isOpen={isMobilePanelOpen}
-        onClose={() => setIsMobilePanelOpen(false)}
-        title="Workspace & Cotización"
-      >
-        {right}
-      </BottomSheetModal>
+      {hasRightPanel ? (
+        <BottomSheetModal
+          isOpen={isMobilePanelOpen}
+          onClose={() => setIsMobilePanelOpen(false)}
+          title="Workspace y Cotizacion"
+        >
+          {right}
+        </BottomSheetModal>
+      ) : null}
     </div>
   );
 }

@@ -43,6 +43,7 @@ export default function TravelerChatPage() {
     appendChatMessage,
     appendAssistantChunk,
     persistChatMessage,
+    createNewChatSession,
     setInsightFromAiText,
     selectJourneyProduct,
     touchJourneyEntry,
@@ -67,6 +68,7 @@ export default function TravelerChatPage() {
   const centerRef = useRef<HTMLDivElement>(null);
   const focusedProductRef = useRef<string | null>(null);
   const initialQueryRef = useRef(false);
+  const messagesRef = useRef<ChatMessage[]>(chatMessages);
   const messages = chatMessages;
   const queryFromLanding = (searchParams.get("q") || "").trim();
   const productFromCatalog = (searchParams.get("product") || "").trim();
@@ -101,6 +103,10 @@ export default function TravelerChatPage() {
       addBoardItem(active.data.current.offer);
     }
   }
+
+  useEffect(() => {
+    messagesRef.current = chatMessages;
+  }, [chatMessages]);
 
   function pushMessage(message: ChatMessage) {
     appendChatMessage(message);
@@ -173,7 +179,7 @@ export default function TravelerChatPage() {
           stream: true,
           responseProfile: "ivi_travel",
           brain: selectedBrain ?? null,
-          messages: [...messages, systemMessage, { role: "user", content: text, ts: now + 1 }],
+          messages: [...messagesRef.current, systemMessage, { role: "user", content: text, ts: now + 1 }],
         }),
       });
       if (!res.ok) {
@@ -271,11 +277,11 @@ export default function TravelerChatPage() {
       setSending(false);
 
       // Async trigger profile extraction directly (fire and forget)
-      if (authUser?.id && messages.length > 0 && messages.length % 3 === 0) {
+      if (authUser?.id && messagesRef.current.length > 0 && messagesRef.current.length % 3 === 0) {
         fetch("/api/traveler/preferences", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ recentMessages: [...messages, userMessage].slice(-6) })
+          body: JSON.stringify({ recentMessages: [...messagesRef.current, userMessage].slice(-6) })
         }).catch(err => console.error("Pref extraction background error:", err));
       }
     }
@@ -347,16 +353,25 @@ export default function TravelerChatPage() {
   }, [featured, productFromCatalog, selectJourneyProduct, touchJourneyEntry]);
 
   useEffect(() => {
+    let cancelled = false;
     const query = queryFromLanding;
-    if (query && !initialQueryRef.current && activeBrain) {
+    const run = async () => {
+      if (!query || initialQueryRef.current || !activeBrain) return;
       initialQueryRef.current = true;
       setInput(query);
+      await createNewChatSession(activeBrain?.id ?? null);
+      if (cancelled) return;
       setTimeout(() => {
         void sendMessage(query);
-      }, 400);
-    }
+      }, 250);
+    };
+
+    void run();
+    return () => {
+      cancelled = true;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [queryFromLanding, activeBrain]);
+  }, [queryFromLanding, activeBrain, createNewChatSession]);
 
   useEffect(() => {
     let cancelled = false;
@@ -430,12 +445,16 @@ export default function TravelerChatPage() {
           />
         }
         right={
-          <TravelerSalesSidebar
-            mode="chat"
-            offers={suppressCatalogSuggestions ? [] : featured}
-            brandName={brandName}
-            currencyCode={tenant.market?.currencyCode || "EUR"}
-          />
+          suppressCatalogSuggestions
+            ? null
+            : (
+              <TravelerSalesSidebar
+                mode="chat"
+                offers={featured}
+                brandName={brandName}
+                currencyCode={tenant.market?.currencyCode || "EUR"}
+              />
+            )
         }
       />
     </DndContext>
