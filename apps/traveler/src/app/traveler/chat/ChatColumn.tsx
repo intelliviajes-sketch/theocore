@@ -1,8 +1,8 @@
 import React, { FormEventHandler, MutableRefObject, useMemo, useState } from "react";
-import { Loader2, SendHorizontal, X, Sparkles, Headphones } from "lucide-react";
+import { Loader2, SendHorizontal, X, Sparkles } from "lucide-react";
 import { useDraggable } from "@dnd-kit/core";
 import { motion, useMotionValue, useTransform } from "framer-motion";
-import { Brain, ChatMessage, UserLite, cn } from "./types-and-utils";
+import { ChatMessage, UserLite, cn } from "./types-and-utils";
 import type { CatalogProduct } from "@/lib/catalog/travelers";
 import { useTravelerPreferences } from "../useTravelerPreferences";
 import { useTravelerWorkspace } from "../TravelerWorkspaceContext";
@@ -12,7 +12,6 @@ interface ChatColumnProps {
   messages: ChatMessage[];
   input: string;
   sending: boolean;
-  activeBrain: Brain | null;
   user: UserLite;
   centerRef: MutableRefObject<HTMLDivElement | null>;
   setInput: (value: string) => void;
@@ -380,7 +379,6 @@ export default function ChatColumn({
   messages,
   input,
   sending,
-  activeBrain,
   user,
   centerRef,
   setInput,
@@ -393,7 +391,6 @@ export default function ChatColumn({
 }: ChatColumnProps) {
   const [openOffer, setOpenOffer] = useState<CatalogProduct | null>(null);
   const [openOfferTab, setOpenOfferTab] = useState<OfferTab>("overview");
-  const [handoffState, setHandoffState] = useState<"idle" | "requesting" | "connected">("idle");
   const { compactMode } = useTravelerPreferences();
 
   const lastAssistantIndex = useMemo(() => {
@@ -410,55 +407,16 @@ export default function ChatColumn({
   const topOffers = useMemo(() => rankOffers(offers).slice(0, 3), [offers]);
   const openOfferData = useMemo(() => (openOffer ? readTabData(openOffer) : null), [openOffer]);
   const compactCards = compactMode;
-  const cardsGridClass = "mt-3 grid gap-2 md:grid-cols-2 xl:grid-cols-3";
   const emptyStateMessage = isLandingPromptFlow && showLandingProcessing
     ? "Procesando tu mensaje..."
     : "";
 
   return (
-    <div className="trav-panel trav-glass trav-reveal flex h-[clamp(320px,calc(100dvh-17rem),780px)] w-full flex-col overflow-hidden rounded-3xl transition-shadow duration-300 focus-within:shadow-[0_22px_48px_-38px_rgba(15,23,42,0.38)] sm:h-[clamp(380px,calc(100dvh-15.5rem),820px)] lg:h-[calc(100dvh-13.75rem)]">
-      <div className="flex justify-between items-center border-b border-amber-100/70 bg-white/62 px-4 py-3 backdrop-blur-lg sm:px-5 sm:py-4">
-        <div>
-          <p className="text-xs text-slate-500">
-            {handoffState === "connected" ? "Atencion Asistida" : "Sandbox de conversacion"}
-          </p>
-          <div className="flex items-center gap-2 mt-1">
-            {handoffState === "connected" ? (
-              <span className="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-            ) : null}
-            <p className="text-sm font-medium text-slate-800">
-              {handoffState === "connected" 
-                ? "Conectado con Agente: Sofia" 
-                : (activeBrain ? `Brain activo: ${activeBrain.name}` : "Modo general IVI")}
-            </p>
-          </div>
-        </div>
-        
-        {handoffState === "idle" && (
-          <button 
-            onClick={() => {
-              setHandoffState("requesting");
-              setTimeout(() => setHandoffState("connected"), 2500);
-            }}
-            className="flex items-center gap-1.5 rounded-full bg-white/80 border border-slate-200 px-3 py-1.5 text-[11px] font-semibold text-slate-600 shadow-sm transition-all hover:bg-white hover:text-slate-900 active:scale-95"
-          >
-            <Headphones className="h-3.5 w-3.5" />
-            <span>Hablar con un Humano</span>
-          </button>
-        )}
-      </div>
-
-      <div ref={centerRef} className="relative flex-1 space-y-4 overflow-auto overscroll-contain p-4 pb-36 sm:p-6 sm:pb-40 scroll-smooth">
-        
-        {handoffState === "requesting" && (
-          <div className="absolute top-4 left-1/2 -translate-x-1/2 z-30 trav-glass rounded-full px-4 py-2 shadow-lg border border-amber-200 flex items-center gap-3 animate-in slide-in-from-top-4">
-            <Loader2 className="h-4 w-4 animate-spin text-amber-600" />
-            <span className="text-xs font-semibold text-amber-900">Transfiriendo tu Pizarra a un Agente...</span>
-          </div>
-        )}
+    <div className="trav-panel trav-glass trav-reveal flex h-[clamp(320px,calc(100dvh-16rem),820px)] w-full flex-col overflow-hidden rounded-3xl transition-shadow duration-300 focus-within:shadow-[0_22px_48px_-38px_rgba(15,23,42,0.38)] sm:h-[clamp(420px,calc(100dvh-14.5rem),860px)] lg:h-[calc(100dvh-12rem)]">
+      <div ref={centerRef} className="relative flex-1 space-y-3 overflow-auto overscroll-contain p-3 pb-32 sm:p-5 sm:pb-36 scroll-smooth">
         {messages.length === 0 ? (
           emptyStateMessage ? (
-            <div className="grid h-full place-items-center">
+            <div className="grid h-full place-items-start pt-2">
               <p className="text-sm font-medium text-slate-500">{emptyStateMessage}</p>
             </div>
           ) : null
@@ -613,11 +571,7 @@ export default function ChatColumn({
             <input
               value={input}
               onChange={(event) => setInput(event.target.value)}
-              placeholder={
-                handoffState === "connected" 
-                  ? "Habla con Sofia (Agente)..." 
-                  : (user.language === "en" ? "Type your message..." : "Habla con IVI...")
-              }
+              placeholder={user.language === "en" ? "Type your message..." : "Escribe tu mensaje..."}
               className="flex-1 bg-transparent px-5 py-3.5 text-[15px] outline-none placeholder:text-slate-400 text-slate-800"
             />
             <button

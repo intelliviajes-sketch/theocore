@@ -494,7 +494,6 @@ export default function TravelerChatPage() {
             messages={messages}
             input={input}
             sending={sending}
-            activeBrain={activeBrain}
             user={user}
             setInput={setInput}
             offers={featured}
