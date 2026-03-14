@@ -69,6 +69,7 @@ export default function TravelerChatPage() {
   const [sending, setSending] = useState(false);
   const [storedLandingPrompt, setStoredLandingPrompt] = useState("");
   const [isLandingPromptFlow, setIsLandingPromptFlow] = useState(false);
+  const [showLandingProcessing, setShowLandingProcessing] = useState(true);
   const centerRef = useRef<HTMLDivElement>(null);
   const focusedProductRef = useRef<string | null>(null);
   const initialQueryRef = useRef(false);
@@ -93,18 +94,21 @@ export default function TravelerChatPage() {
     if (productFromCatalog.length > 0) {
       setStoredLandingPrompt("");
       setIsLandingPromptFlow(false);
+      setShowLandingProcessing(true);
       return;
     }
 
     if (queryFromLanding.length > 0) {
       setStoredLandingPrompt("");
       setIsLandingPromptFlow(true);
+      setShowLandingProcessing(true);
       return;
     }
 
     if (!fromLanding) {
       setStoredLandingPrompt("");
       setIsLandingPromptFlow(false);
+      setShowLandingProcessing(true);
       return;
     }
 
@@ -112,13 +116,28 @@ export default function TravelerChatPage() {
     if (storedPrompt.length > 0) {
       setStoredLandingPrompt(storedPrompt);
       setIsLandingPromptFlow(true);
+      setShowLandingProcessing(true);
       window.sessionStorage.removeItem(LANDING_PROMPT_STORAGE_KEY);
       return;
     }
 
     setStoredLandingPrompt("");
     setIsLandingPromptFlow(false);
+    setShowLandingProcessing(true);
   }, [fromLanding, productFromCatalog, queryFromLanding]);
+
+  useEffect(() => {
+    if (!isLandingPromptFlow || messages.length > 0) {
+      setShowLandingProcessing(true);
+      return;
+    }
+
+    const timeout = window.setTimeout(() => {
+      setShowLandingProcessing(false);
+    }, 8000);
+
+    return () => window.clearTimeout(timeout);
+  }, [isLandingPromptFlow, messages.length, landingPrompt]);
 
   const sensors = useSensors(
     useSensor(MouseSensor, {
@@ -473,6 +492,7 @@ export default function TravelerChatPage() {
             offers={featured}
             showSuggestedOffers={!suppressCatalogSuggestions}
             isLandingPromptFlow={suppressCatalogSuggestions}
+            showLandingProcessing={showLandingProcessing}
             onSelectOffer={(offer) => {
               void onSelectOffer(offer);
             }}

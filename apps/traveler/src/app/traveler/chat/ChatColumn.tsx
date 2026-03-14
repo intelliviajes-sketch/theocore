@@ -21,6 +21,7 @@ interface ChatColumnProps {
   onSelectOffer?: (offer: CatalogProduct) => void;
   showSuggestedOffers?: boolean;
   isLandingPromptFlow?: boolean;
+  showLandingProcessing?: boolean;
 }
 
 function renderInlineMarkdown(text: string) {
@@ -393,6 +394,7 @@ export default function ChatColumn({
   onSelectOffer,
   showSuggestedOffers = true,
   isLandingPromptFlow = false,
+  showLandingProcessing = true,
 }: ChatColumnProps) {
   const [openOffer, setOpenOffer] = useState<CatalogProduct | null>(null);
   const [openOfferTab, setOpenOfferTab] = useState<OfferTab>("overview");
@@ -415,7 +417,7 @@ export default function ChatColumn({
   const compactCards = compactMode;
   const cardsGridClass = "mt-3 grid gap-2 md:grid-cols-2 xl:grid-cols-3";
   const emptyStateMessage = isLandingPromptFlow
-    ? "Procesando tu mensaje..."
+    ? (showLandingProcessing ? "Procesando tu mensaje..." : "Escribe tu mensaje para continuar.")
     : activeBrain
       ? `Hola, soy IVI. ${activeBrain.name} esta listo para ayudarte.`
       : "Hola, soy IVI. Cuentame a donde quieres viajar.";
