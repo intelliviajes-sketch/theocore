@@ -87,7 +87,22 @@ export default function TravelerChatPage() {
   });
 
   const [brains, setBrains] = useState<Brain[]>([]);
-  const [activeBrainId, setActiveBrainId] = useState<string | null>(tenant.market?.defaultBrainId ?? null);
+  const [activeBrainId, setActiveBrainId] = useState<string | null>(null);
+
+  useEffect(() => {
+    loadBrainsForTenant(tenant.kind === "agency" ? tenant.agency?.id ?? null : null)
+      .then((loadedBrains) => {
+        setBrains(loadedBrains);
+        const savedId = tenant.market?.defaultBrainId;
+        if (savedId && loadedBrains.some((b) => b.id === savedId)) {
+          setActiveBrainId(savedId);
+        } else if (loadedBrains.length > 0) {
+          setActiveBrainId(loadedBrains[0].id);
+        }
+      })
+      .catch(console.error);
+  }, [tenant]);
+
   const activeBrain = useMemo(() => brains.find((brain) => brain.id === activeBrainId) || null, [brains, activeBrainId]);
 
   const [input, setInput] = useState("");
