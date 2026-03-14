@@ -20,6 +20,32 @@ function tryParseJson(value: string) {
   }
 }
 
+function decodeQuotedJsonString(value: string) {
+  return value
+    .replace(/\\"/g, "\"")
+    .replace(/\\n/g, "\n")
+    .replace(/\\t/g, "\t")
+    .replace(/\\\\/g, "\\")
+    .trim();
+}
+
+function extractJsonLikeField(text: string, field: string) {
+  const pattern = new RegExp(`"${field}"\\s*:\\s*"([\\s\\S]*?)"`, "i");
+  const match = text.match(pattern);
+  if (!match?.[1]) return null;
+  const decoded = decodeQuotedJsonString(match[1]);
+  return decoded.length > 0 ? decoded : null;
+}
+
+function extractFromJsonLikeText(text: string) {
+  const preferredFields = ["summary", "message", "reply", "content", "text", "title"];
+  for (const field of preferredFields) {
+    const value = extractJsonLikeField(text, field);
+    if (value) return value;
+  }
+  return null;
+}
+
 function extractAssistantText(value: unknown, depth = 0): string | null {
   if (depth > 5 || value == null) return null;
 
@@ -98,6 +124,13 @@ export function normalizeAssistantOutput(raw: unknown) {
   if (maybeJson !== null) {
     const extracted = extractAssistantText(maybeJson);
     if (extracted) return extracted;
+  }
+
+  const regexExtracted = extractFromJsonLikeText(unwrapped);
+  if (regexExtracted) return normalizeText(regexExtracted);
+
+  if (unwrapped.startsWith("{") || unwrapped.startsWith("[")) {
+    return "No pude interpretar la respuesta del brain en formato conversacional. Reintenta con un texto mas detallado.";
   }
 
   return normalizedRaw;
