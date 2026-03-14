@@ -365,7 +365,7 @@ export default function TravelerChatPage() {
         prefs: Object.keys(initialPrefs).length > 0 ? [(initialPrefs as any)] : [],
       });
 
-      const list = (await loadBrainsForTenant(agencyId)) as Brain[];
+      const list = (await loadBrainsForTenant(agencyId)) as unknown as Brain[];
       if (cancelled) return;
       setBrains(list);
 

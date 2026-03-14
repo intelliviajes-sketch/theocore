@@ -2,6 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
+import type { Dispatch, SetStateAction } from "react";
 import { supabaseBrowser as supabase } from "@/lib/supabase/client";
 import type { CatalogProduct } from "@/lib/catalog/travelers";
 import type { ChatMessage } from "./chat/types-and-utils";
@@ -129,7 +130,7 @@ type TravelerWorkspaceContextValue = {
   chatMessages: ChatMessage[];
   loadingChatSessions: boolean;
   setChatSessionId: (value: string | null) => void;
-  setChatMessages: (messages: ChatMessage[]) => void;
+  setChatMessages: Dispatch<SetStateAction<ChatMessage[]>>;
   appendChatMessage: (message: ChatMessage) => void;
   appendAssistantChunk: (chunk: string) => void;
   clearChatMessages: () => void;
