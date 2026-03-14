@@ -671,7 +671,7 @@ export default function TravelerPlanningPage() {
             currencyCode={tenant.market?.currencyCode || "EUR"}
           />
 
-          <div className="px-5 py-5">
+          <div className="px-5 py-3">
             <div className="flex items-center justify-between gap-3">
               <div>
                 <h3 className="text-lg font-semibold text-slate-900">Copiloto IA</h3>
@@ -709,7 +709,7 @@ export default function TravelerPlanningPage() {
             ) : null}
           </div>
 
-          <div className="px-5 py-5">
+          <div className="px-5 py-3">
             <div className="flex items-center justify-between gap-3">
               <div>
                 <h3 className="text-lg font-semibold text-slate-900">Preview</h3>

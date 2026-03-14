@@ -106,8 +106,8 @@ export default function TravelerSalesSidebar({
   }
 
   return (
-    <div className="trav-reveal overflow-hidden border border-slate-200/70 bg-white/70 pb-8 backdrop-blur-sm xl:pb-4">
-      <section className="overflow-hidden px-4 py-5">
+    <div className="trav-reveal overflow-hidden border border-slate-200/70 bg-white/70 backdrop-blur-sm">
+      <section className="overflow-hidden px-4 py-3">
         <div className="mb-4 flex items-center justify-between gap-2">
           <p className="text-xs font-bold uppercase tracking-wider text-slate-500">Destino actual</p>
           <MapPinned className="h-4 w-4 text-slate-400" />
@@ -155,7 +155,7 @@ export default function TravelerSalesSidebar({
       <section
         ref={setNodeRef}
         className={cn(
-          "border-t border-slate-200/70 px-4 py-5 transition-all duration-300",
+          "border-t border-slate-200/70 px-4 py-3 transition-all duration-300",
           isOver && "ring-2 ring-amber-400 bg-amber-50/40 shadow-xl shadow-amber-500/10 scale-[1.01]",
         )}
       >
