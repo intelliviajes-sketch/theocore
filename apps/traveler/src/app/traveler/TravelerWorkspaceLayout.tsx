@@ -57,7 +57,7 @@ export default function TravelerWorkspaceLayout({
           </section>
 
           {hasRightPanel ? (
-            <aside className="trav-reveal hidden xl:block h-full overflow-y-auto pr-1 pb-4 transition-all duration-500">
+            <aside className="trav-reveal hidden lg:block h-full overflow-y-auto pr-1 pb-4 transition-all duration-500">
               {right}
             </aside>
           ) : null}
@@ -66,7 +66,7 @@ export default function TravelerWorkspaceLayout({
         {hasRightPanel ? (
           <button
             onClick={() => setIsMobilePanelOpen(true)}
-            className="fixed bottom-6 right-6 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-r from-amber-400 to-amber-500 shadow-xl shadow-amber-500/30 transition-transform active:scale-95 xl:hidden"
+            className="fixed bottom-6 right-6 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-r from-amber-400 to-amber-500 shadow-xl shadow-amber-500/30 transition-transform active:scale-95 lg:hidden"
             aria-label="Abrir Panel de Control"
           >
             <Layers className="h-6 w-6 text-slate-900" />

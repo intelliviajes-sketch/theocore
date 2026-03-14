@@ -50,7 +50,6 @@ export default function TravelerChatPage() {
     appendChatMessage,
     appendAssistantChunk,
     persistChatMessage,
-    createNewChatSession,
     setInsightFromAiText,
     selectJourneyProduct,
     touchJourneyEntry,
@@ -432,7 +431,6 @@ export default function TravelerChatPage() {
   }, [featured, productFromCatalog, selectJourneyProduct, touchJourneyEntry]);
 
   useEffect(() => {
-    let cancelled = false;
     const query = landingPrompt;
     const run = async () => {
       // TODO(landing-handoff): Caso pendiente en producción (collaviajes.com):
@@ -449,8 +447,6 @@ export default function TravelerChatPage() {
       initialQueryRef.current = true;
       setInput("");
       setPendingChatPrompt(null);
-      await createNewChatSession(activeBrain?.id ?? null);
-      if (cancelled) return;
       // Ensure the first prompt starts from a clean chat context.
       messagesRef.current = [];
       setChatMessages([]);
@@ -458,11 +454,8 @@ export default function TravelerChatPage() {
     };
 
     void run();
-    return () => {
-      cancelled = true;
-    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [landingPrompt, activeBrain, createNewChatSession, isLandingPromptFlow, setPendingChatPrompt]);
+  }, [landingPrompt, activeBrain, isLandingPromptFlow, setPendingChatPrompt]);
 
   useEffect(() => {
     let cancelled = false;

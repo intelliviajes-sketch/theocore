@@ -53,8 +53,13 @@ export default function TravelerLandingPage() {
   }
 
   return (
-    <div className="trav-page">
-      <div className="trav-container">
+    <div className="trav-page relative overflow-hidden">
+      <div className="pointer-events-none absolute inset-y-0 right-0 hidden w-[42%] min-w-[360px] lg:block">
+        <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(15,23,42,0.94)_0%,rgba(30,41,59,0.9)_36%,rgba(124,45,18,0.9)_100%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(560px_300px_at_88%_12%,rgba(251,191,36,0.45),transparent_72%),radial-gradient(420px_220px_at_14%_80%,rgba(251,146,60,0.38),transparent_75%)]" />
+        <div className="absolute inset-y-0 left-0 w-10 bg-gradient-to-r from-[#f8fafc] to-transparent" />
+      </div>
+      <div className="trav-container relative z-10">
         <TravelerStartWizard
           brandName={brandName}
           localeLabel={localeLabel}
