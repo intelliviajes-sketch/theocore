@@ -422,7 +422,7 @@ export default function TravelerChatPage() {
     const run = async () => {
       if (!query || initialQueryRef.current || !isLandingPromptFlow) return;
       initialQueryRef.current = true;
-      setInput(query);
+      setInput("");
       await createNewChatSession(activeBrain?.id ?? null);
       if (cancelled) return;
       // Ensure the first prompt starts from a clean chat context.

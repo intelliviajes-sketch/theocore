@@ -334,6 +334,7 @@ export function TravelerWorkspaceProvider({
   children: ReactNode;
 }) {
   const [chatSessionId, setChatSessionId] = useState<string | null>(null);
+  const chatSessionIdRef = useRef<string | null>(null);
   const [chatSessions, setChatSessions] = useState<ChatSessionSummary[]>([]);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [loadingChatSessions, setLoadingChatSessions] = useState(false);
@@ -349,6 +350,10 @@ export function TravelerWorkspaceProvider({
   );
   const [restoredWorkspace, setRestoredWorkspace] = useState(false);
   const lastIntentHighAt = useRef<number | null>(null);
+
+  useEffect(() => {
+    chatSessionIdRef.current = chatSessionId;
+  }, [chatSessionId]);
 
   const reloadChatSessions = useCallback(async () => {
     if (!userId) {
@@ -401,6 +406,7 @@ export function TravelerWorkspaceProvider({
   }
 
   async function selectChatSession(sessionId: string) {
+    chatSessionIdRef.current = sessionId;
     setChatSessionId(sessionId);
     try {
       await loadMessagesForSession(sessionId);
@@ -413,6 +419,7 @@ export function TravelerWorkspaceProvider({
   async function createNewChatSession(brainId?: string | null) {
     if (!userId) {
       const localSessionId = createClientId("local_chat");
+      chatSessionIdRef.current = localSessionId;
       setChatSessionId(localSessionId);
       setChatMessages([]);
       setChatSessions((current) => [
@@ -440,6 +447,7 @@ export function TravelerWorkspaceProvider({
       if (error) throw error;
       if (!data?.id) return null;
 
+      chatSessionIdRef.current = data.id;
       setChatSessionId(data.id);
       setChatMessages([]);
       setChatSessions((current) => [
@@ -457,6 +465,7 @@ export function TravelerWorkspaceProvider({
         "Error creando sesion de chat traveler en Supabase. Se usara sesion local.",
         buildChatErrorLog(createError),
       );
+      chatSessionIdRef.current = localSessionId;
       setChatSessionId(localSessionId);
       setChatMessages([]);
       setChatSessions((current) => [
@@ -472,7 +481,7 @@ export function TravelerWorkspaceProvider({
   }
 
   async function ensureChatSession(brainId?: string | null) {
-    if (chatSessionId) return chatSessionId;
+    if (chatSessionIdRef.current) return chatSessionIdRef.current;
     return createNewChatSession(brainId);
   }
 
