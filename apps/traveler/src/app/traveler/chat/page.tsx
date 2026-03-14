@@ -483,16 +483,26 @@ export default function TravelerChatPage() {
         prefs: Object.keys(initialPrefs).length > 0 ? [(initialPrefs as any)] : [],
       });
 
-      const list = (await loadBrainsForTenant(agencyId, {
-        executionLayer: "frontend",
-        allowedCategories: ["traveler"],
-      })) as unknown as Brain[];
-      if (cancelled) return;
-      setBrains(list);
+      try {
+        const list = (await loadBrainsForTenant(agencyId, {
+          executionLayer: "frontend",
+          allowedCategories: ["traveler"],
+        })) as unknown as Brain[];
+        if (cancelled) return;
+        setBrains(list);
 
-      const nextBrain = pickBestChatBrain(list, tenant.market?.defaultBrainId);
-      setActiveBrainId(nextBrain?.id ?? null);
-      setBrainsLoaded(true);
+        const nextBrain = pickBestChatBrain(list, tenant.market?.defaultBrainId);
+        setActiveBrainId(nextBrain?.id ?? null);
+      } catch (loadBrainsError) {
+        console.error("Error loading traveler brains:", loadBrainsError);
+        if (cancelled) return;
+        setBrains([]);
+        setActiveBrainId(null);
+      } finally {
+        if (!cancelled) {
+          setBrainsLoaded(true);
+        }
+      }
     };
 
     void run();
