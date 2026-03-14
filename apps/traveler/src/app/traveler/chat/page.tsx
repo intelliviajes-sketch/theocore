@@ -70,6 +70,7 @@ export default function TravelerChatPage() {
   const [storedLandingPrompt, setStoredLandingPrompt] = useState("");
   const [isLandingPromptFlow, setIsLandingPromptFlow] = useState(false);
   const [showLandingProcessing, setShowLandingProcessing] = useState(true);
+  const [hasMessagesEver, setHasMessagesEver] = useState(false);
   const centerRef = useRef<HTMLDivElement>(null);
   const focusedProductRef = useRef<string | null>(null);
   const initialQueryRef = useRef(false);
@@ -80,6 +81,7 @@ export default function TravelerChatPage() {
   const productFromCatalog = (searchParams.get("product") || "").trim();
   const landingPrompt = (queryFromLanding || storedLandingPrompt).trim();
   const suppressCatalogSuggestions = isLandingPromptFlow && productFromCatalog.length === 0;
+  const landingUiSuppression = suppressCatalogSuggestions && !hasMessagesEver;
   const catalogContext = useMemo(
     () =>
       suppressCatalogSuggestions
@@ -89,6 +91,12 @@ export default function TravelerChatPage() {
             .join(" | "),
     [featured, suppressCatalogSuggestions],
   );
+
+  useEffect(() => {
+    if (messages.length > 0) {
+      setHasMessagesEver(true);
+    }
+  }, [messages.length]);
 
   useEffect(() => {
     if (productFromCatalog.length > 0) {
@@ -127,7 +135,7 @@ export default function TravelerChatPage() {
   }, [fromLanding, productFromCatalog, queryFromLanding]);
 
   useEffect(() => {
-    if (!isLandingPromptFlow || messages.length > 0) {
+    if (!landingUiSuppression || messages.length > 0) {
       setShowLandingProcessing(true);
       return;
     }
@@ -137,7 +145,7 @@ export default function TravelerChatPage() {
     }, 8000);
 
     return () => window.clearTimeout(timeout);
-  }, [isLandingPromptFlow, messages.length, landingPrompt]);
+  }, [landingUiSuppression, messages.length, landingPrompt]);
 
   const sensors = useSensors(
     useSensor(MouseSensor, {
@@ -491,8 +499,8 @@ export default function TravelerChatPage() {
             setInput={setInput}
             offers={featured}
             showSuggestedOffers={!suppressCatalogSuggestions}
-            isLandingPromptFlow={suppressCatalogSuggestions}
-            showLandingProcessing={showLandingProcessing}
+            isLandingPromptFlow={landingUiSuppression}
+            showLandingProcessing={landingUiSuppression && showLandingProcessing}
             onSelectOffer={(offer) => {
               void onSelectOffer(offer);
             }}
