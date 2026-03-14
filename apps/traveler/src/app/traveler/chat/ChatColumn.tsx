@@ -457,14 +457,11 @@ export default function ChatColumn({
           </div>
         )}
         {messages.length === 0 ? (
-          <div className="grid h-full place-items-center">
-            <div className="trav-glass-soft w-full max-w-2xl rounded-2xl p-5 text-center sm:p-6">
-              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-3xl bg-gradient-to-br from-amber-300 to-amber-500 text-sm font-semibold text-slate-900 ring-1 ring-amber-200/80 sm:h-20 sm:w-20 sm:text-base">
-                AI
-              </div>
-              {emptyStateMessage ? <p className="text-sm font-medium text-slate-600">{emptyStateMessage}</p> : null}
+          emptyStateMessage ? (
+            <div className="grid h-full place-items-center">
+              <p className="text-sm font-medium text-slate-500">{emptyStateMessage}</p>
             </div>
-          </div>
+          ) : null
         ) : (
           <>
             {messages.map((message, index) => (
