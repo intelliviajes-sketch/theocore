@@ -208,7 +208,7 @@ export default function TravelerChatPage() {
     try {
       await persistChatMessage(userMessage, selectedBrain?.id);
 
-      if (tenant.kind === "agency" && !selectedBrain) {
+      if (tenant.kind === "agency" && brainsLoaded && !selectedBrain) {
         const noBrainMessage =
           "Esta agencia no tiene un brain traveler/frontend asignado. Configuralo en TheoCore (Agencias -> Brains asignados) y verifica el dominio de la agencia.";
         appendAssistantChunk(noBrainMessage);
@@ -433,7 +433,6 @@ export default function TravelerChatPage() {
     const query = landingPrompt;
     const run = async () => {
       if (!query || initialQueryRef.current || !isLandingPromptFlow) return;
-      if (tenant.kind === "agency" && !brainsLoaded) return;
       initialQueryRef.current = true;
       setInput("");
       setPendingChatPrompt(null);
@@ -450,7 +449,7 @@ export default function TravelerChatPage() {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [landingPrompt, activeBrain, brainsLoaded, createNewChatSession, isLandingPromptFlow, setPendingChatPrompt, tenant.kind]);
+  }, [landingPrompt, activeBrain, createNewChatSession, isLandingPromptFlow, setPendingChatPrompt]);
 
   useEffect(() => {
     let cancelled = false;
