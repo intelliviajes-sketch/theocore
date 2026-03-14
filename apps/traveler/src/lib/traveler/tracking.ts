@@ -12,7 +12,8 @@ export type TravelerEventName =
   | "create_quote"
   | "update_reservation"
   | "add_collaborator"
-  | "open_support_case";
+  | "open_support_case"
+  | "high_ticket_lead_captured";
 
 export type TravelerEventPayload = Record<string, unknown>;
 

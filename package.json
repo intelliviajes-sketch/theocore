@@ -13,10 +13,14 @@
     "docs:file-review": "node tools/generate-file-review.mjs"
   },
   "devDependencies": {
+    "@types/canvas-confetti": "^1.9.0",
     "turbo": "latest"
   },
   "workspaces": [
     "apps/*",
     "packages/*"
-  ]
+  ],
+  "dependencies": {
+    "canvas-confetti": "^1.9.4"
+  }
 }

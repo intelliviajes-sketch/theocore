@@ -92,49 +92,6 @@ export default function Page() {
                   <Building2 className="h-6 w-6" />
                 </div>
                 <div>
-                  <div className="inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-300">
-                    Dashboard operativo
-                  </div>
-                  <h2 className="mt-3 text-3xl font-semibold text-slate-800 dark:text-slate-100">
-                    {currentAgency?.commercial_name || "Panel de agencia"}
-                  </h2>
-                  <div className="mt-3 flex flex-wrap gap-2 text-sm text-slate-500 dark:text-slate-300">
-                    {stats.countryCode ? <span className="rounded-full bg-slate-100 px-3 py-1 dark:bg-slate-800">{stats.countryCode}</span> : null}
-                    {stats.legalName ? <span className="rounded-full bg-slate-100 px-3 py-1 dark:bg-slate-800">{stats.legalName}</span> : null}
-                    {stats.emailContact ? <span className="rounded-full bg-slate-100 px-3 py-1 dark:bg-slate-800">{stats.emailContact}</span> : null}
-                  </div>
-                </div>
-              </div>
-
-              <div className="grid gap-3 sm:grid-cols-2">
-                <button onClick={() => setProfileOpen(true)} className="rounded-2xl bg-slate-100 px-4 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700">
-                  Ver perfil
-                </button>
-                <Link href={agencySectionPath(id, "ag_team")} className="rounded-2xl bg-slate-100 px-4 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700">
-                  Empleados
-                </Link>
-                <Link href={agencySectionPath(id, "registered-travelers")} className="rounded-2xl bg-slate-100 px-4 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700 sm:col-span-2">
-                  CRM de viajeros
-                </Link>
-              </div>
-            </div>
-
-            {loading ? (
-              <div className="mt-8 flex items-center gap-3 rounded-2xl border border-dashed border-slate-300 px-4 py-8 text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Cargando indicadores de la agencia...
-              </div>
-            ) : loadError ? (
-              <div className="mt-8 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-4 text-sm text-rose-700 dark:border-rose-900/40 dark:bg-rose-950/20 dark:text-rose-300">
-                {loadError}
-              </div>
-            ) : (
-              <>
-                <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-                  <StatCard label="Equipo activo" value={stats.teamCount} icon={Users} />
-                  <StatCard label="Viajeros activos" value={stats.travelersCount} icon={UserRound} />
-                  <StatCard label="Brains asignados" value={stats.brainsCount} icon={Bot} />
-                  <StatCard label="Herramientas visibles" value={stats.toolsCount} icon={Wrench} />
                 </div>
 
                 <div className="mt-6 grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
@@ -196,8 +153,8 @@ export default function Page() {
                     </div>
                   </div>
                 </div>
-              </>
-            )}
+              </div>
+            </div>
           </section>
 
           <AgencyToolsPanel agencyId={id} />

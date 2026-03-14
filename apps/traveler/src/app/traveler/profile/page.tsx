@@ -146,7 +146,19 @@ export default function TravelerProfilePage() {
         <div className="trav-panel p-6 sm:p-8">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <p className="trav-kicker">Perfil viajero</p>
+            <div className="flex items-center gap-3 mb-1">
+              <p className="trav-kicker !mb-0">Perfil viajero</p>
+              {form.travelStyle.includes("Lujo") && (
+                <span className="inline-flex items-center rounded-full bg-gradient-to-r from-amber-300 to-amber-500 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-amber-950 shadow-sm ring-1 ring-amber-200">
+                  Premium
+                </span>
+              )}
+              {form.travelStyle.includes("Aventura") && (
+                <span className="inline-flex items-center rounded-full bg-gradient-to-r from-emerald-300 to-emerald-500 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-emerald-950 shadow-sm ring-1 ring-emerald-200">
+                  Aventurero
+                </span>
+              )}
+            </div>
             <h1 className="trav-title">Tu perfil</h1>
             <p className="trav-subtitle">
               Esta informacion ayuda a IVI a recomendar mejor tus opciones de viaje.

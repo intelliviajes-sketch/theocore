@@ -106,6 +106,7 @@ type JourneyWorkspaceState = {
   reservation: JourneyReservation | null;
   supportCases: JourneySupportCase[];
   checklist: JourneyChecklist;
+  boardItems: any[]; // The generic items saved into the interactive right board
   updatedAt: number | null;
 };
 
@@ -158,6 +159,8 @@ type TravelerWorkspaceContextValue = {
   markPlanningStarted: () => void;
   selectJourneyProduct: (product: CatalogProduct | null) => void;
   setJourneyDestination: (destination: string | null) => void;
+  addBoardItem: (item: any) => void;
+  removeBoardItem: (itemId: string) => void;
   addJourneyCollaborator: (input: {
     name: string;
     email: string;
@@ -206,6 +209,7 @@ const INITIAL_JOURNEY_STATE: JourneyWorkspaceState = {
     bookingConfirmed: false,
     supportReady: false,
   },
+  boardItems: [],
   updatedAt: null,
 };
 
@@ -747,6 +751,45 @@ export function TravelerWorkspaceProvider({
     }));
   }
 
+  function addBoardItem(item: any) {
+    setJourneyState((current) => ({
+      ...current,
+      boardItems: [...current.boardItems, { ...item, _id: createClientId("board") }],
+      updatedAt: Date.now(),
+    }));
+
+    // CRM Lead Sync: Detect High-Intent / High-Ticket actions
+    try {
+      let price = 0;
+      if (item?.data) {
+        const keys = ["price", "precio", "amount", "total", "base_price", "price_from"];
+        for (const key of keys) {
+          const value = item.data[key];
+          if (typeof value === "number") price = value;
+          else if (typeof value === "string") price = Number(value.replace(",", ".").replace(/[^0-9.-]/g, "")) || 0;
+          if (price > 0) break;
+        }
+      }
+      if (price >= 1000) {
+        trackTravelerEvent("high_ticket_lead_captured", {
+          productId: item.id,
+          title: item.title,
+          price: price,
+        });
+      }
+    } catch (err) {
+      console.error("CRM Lead Sync Error", err);
+    }
+  }
+
+  function removeBoardItem(itemId: string) {
+    setJourneyState((current) => ({
+      ...current,
+      boardItems: current.boardItems.filter((i) => i._id !== itemId),
+      updatedAt: Date.now(),
+    }));
+  }
+
   function addJourneyCollaborator(input: {
     name: string;
     email: string;
@@ -1032,6 +1075,8 @@ export function TravelerWorkspaceProvider({
     markPlanningStarted,
     selectJourneyProduct,
     setJourneyDestination,
+    addBoardItem,
+    removeBoardItem,
     addJourneyCollaborator,
     removeJourneyCollaborator,
     createJourneyQuote,

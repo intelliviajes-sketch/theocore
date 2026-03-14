@@ -1,8 +1,11 @@
-import React, { FormEventHandler, MutableRefObject, useMemo, useState } from "react";
-import { Loader2, SendHorizontal, X } from "lucide-react";
+import React, { FormEventHandler, MutableRefObject, useEffect, useMemo, useState } from "react";
+import { Loader2, SendHorizontal, X, Sparkles, Headphones } from "lucide-react";
+import { useDraggable } from "@dnd-kit/core";
+import { motion, useMotionValue, useTransform } from "framer-motion";
 import { Brain, ChatMessage, UserLite, cn } from "./types-and-utils";
 import type { CatalogProduct } from "@/lib/catalog/travelers";
 import { useTravelerPreferences } from "../useTravelerPreferences";
+import { useTravelerWorkspace } from "../TravelerWorkspaceContext";
 
 interface ChatColumnProps {
   messages: ChatMessage[];
@@ -28,7 +31,11 @@ function renderInlineMarkdown(text: string) {
   });
 }
 
-function renderAssistantMessage(content: string) {
+function renderAssistantMessage(
+  content: string, 
+  offers: CatalogProduct[], 
+  onSelectOffer?: (offer: CatalogProduct) => void
+) {
   const lines = content.replace(/\r\n/g, "\n").split("\n");
 
   return (
@@ -38,19 +45,52 @@ function renderAssistantMessage(content: string) {
         if (!line) {
           return <div key={`sp-${index}`} className="h-1" />;
         }
+        
+        // --- Generative UI Injections ---
+        const offerMatch = line.match(/\[OFFER:([a-zA-Z0-9_-]+)\]/);
+        if (offerMatch) {
+          const offerId = offerMatch[1];
+          const matchedOffer = offers.find(o => o.id === offerId);
+          if (matchedOffer) {
+            const price = readOfferPrice(matchedOffer);
+            return (
+              <div key={`offer-gen-${index}`} className="my-3 overflow-hidden rounded-xl border border-amber-200/60 bg-white/80 shadow-sm transition-all hover:shadow-md hover:border-amber-300 group">
+                {matchedOffer.coverImage && (
+                   <div className="h-24 w-full overflow-hidden">
+                     <img src={matchedOffer.coverImage} alt={matchedOffer.title} className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                   </div>
+                )}
+                <div className="p-3">
+                  <div className="flex justify-between items-start gap-2">
+                    <h4 className="font-bold text-slate-900 leading-tight">{matchedOffer.title}</h4>
+                    {price && <span className="font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md text-xs whitespace-nowrap">{formatMoney(price)}</span>}
+                  </div>
+                  <p className="mt-1 text-xs text-slate-600 line-clamp-2">{matchedOffer.summary}</p>
+                  <button 
+                    onClick={() => onSelectOffer?.(matchedOffer)}
+                    className="mt-3 w-full rounded-lg bg-slate-900 py-1.5 text-xs font-bold text-white transition-colors hover:bg-slate-800"
+                  >
+                    Ver detalles
+                  </button>
+                </div>
+              </div>
+            );
+          }
+        }
+        
         if (line === "---") {
           return <hr key={`hr-${index}`} className="my-2 border-slate-300" />;
         }
         if (line.startsWith("### ")) {
           return (
-            <h4 key={`h4-${index}`} className="text-sm font-semibold text-slate-900">
+            <h4 key={`h4-${index}`} className="text-sm font-semibold text-slate-900 mt-3">
               {renderInlineMarkdown(line.replace(/^###\s+/, ""))}
             </h4>
           );
         }
         if (line.startsWith("## ")) {
           return (
-            <h3 key={`h3-${index}`} className="text-base font-semibold text-slate-900">
+            <h3 key={`h3-${index}`} className="text-base font-semibold text-slate-900 mt-4 mb-1">
               {renderInlineMarkdown(line.replace(/^##\s+/, ""))}
             </h3>
           );
@@ -79,6 +119,52 @@ function renderAssistantMessage(content: string) {
           </p>
         );
       })}
+    </div>
+  );
+}
+
+function TypewriterText({ text }: { text: string }) {
+  const [displayed, setDisplayed] = useState("");
+  useEffect(() => {
+    let i = 0;
+    const interval = setInterval(() => {
+      setDisplayed(text.substring(0, i));
+      i++;
+      if (i > text.length) clearInterval(interval);
+    }, 25);
+    return () => clearInterval(interval);
+  }, [text]);
+  return <span>{displayed}<span className="inline-block w-1.5 h-4 ml-0.5 bg-amber-500 animate-[pulse_1s_ease-in-out_infinite] align-middle" /></span>;
+}
+
+function AssistantMessageRenderer({ 
+  content, 
+  offers, 
+  onSelectOffer 
+}: { 
+  content: string; 
+  offers: CatalogProduct[]; 
+  onSelectOffer?: (offer: CatalogProduct) => void;
+}) {
+  const isLong = content.length > 600;
+  const [expanded, setExpanded] = useState(!isLong);
+  return (
+    <div className="relative">
+      <div className={cn("overflow-hidden transition-all duration-500", expanded ? "max-h-[10000px]" : "max-h-[220px]")}>
+         {renderAssistantMessage(content, offers, onSelectOffer)}
+      </div>
+      {!expanded && (
+        <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-white via-white/80 to-transparent flex items-end justify-center pb-2 rounded-b-2xl">
+          <button onClick={() => setExpanded(true)} className="rounded-full bg-slate-100 hover:bg-slate-200 px-3 py-1 text-xs font-semibold text-slate-700 shadow-sm transition-all active:scale-95 border border-slate-200">
+            Modo TL;DR (Leer todo)
+          </button>
+        </div>
+      )}
+      {isLong && expanded && (
+        <button onClick={() => setExpanded(false)} className="mt-3 text-[11px] font-semibold text-slate-500 hover:text-slate-700 transition-colors">
+           Mostrar menos
+        </button>
+      )}
     </div>
   );
 }
@@ -229,11 +315,78 @@ function rankOffers(offers: CatalogProduct[]) {
 
 function AssistantTypingSkeleton() {
   return (
-    <div className="space-y-2">
-      <div className="h-3.5 w-4/5 animate-pulse rounded-md bg-slate-200" />
-      <div className="h-3.5 w-3/5 animate-pulse rounded-md bg-slate-200" />
-      <div className="h-3.5 w-2/3 animate-pulse rounded-md bg-slate-200" />
+    <div className="flex flex-col gap-3 py-1">
+      <div className="flex items-center gap-2 text-amber-500">
+        <Sparkles className="h-4 w-4 animate-[pulse_2s_ease-in-out_infinite]" />
+        <span className="text-sm font-medium animate-[pulse_2.5s_ease-in-out_infinite] bg-gradient-to-r from-amber-500 to-amber-300 bg-clip-text text-transparent">
+          IVI está diseñando tu experiencia...
+        </span>
+      </div>
+      <div className="space-y-2">
+        <div className="h-2 w-full animate-[pulse_1.5s_ease-in-out_infinite] rounded-full bg-gradient-to-r from-amber-200/60 via-amber-100/30 to-transparent" />
+        <div className="h-2 w-3/4 animate-[pulse_1.8s_ease-in-out_infinite] rounded-full bg-gradient-to-r from-amber-200/60 via-amber-100/30 to-transparent" />
+      </div>
     </div>
+  );
+}
+
+function DraggableOfferCard({ offer, children }: { offer: CatalogProduct, children: React.ReactNode }) {
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+    id: `draggable-offer-${offer.id}`,
+    data: { offer },
+  });
+  
+  const { addBoardItem } = useTravelerWorkspace();
+  const [swipedStatus, setSwipedStatus] = useState<"saved" | "dismissed" | null>(null);
+  
+  const x = useMotionValue(0);
+  const rotate = useTransform(x, [-150, 0, 150], [-10, 0, 10]);
+  const opacity = useTransform(x, [-200, 0, 200], [0.5, 1, 0.5]);
+  const saveStampOpacity = useTransform(x, [20, 100], [0, 1]);
+  const dismissStampOpacity = useTransform(x, [-20, -100], [0, 1]);
+
+  const style = transform ? {
+    transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
+    zIndex: isDragging ? 50 : undefined,
+    opacity: isDragging ? 0.8 : 1,
+  } : undefined;
+
+  if (swipedStatus) return null;
+
+  return (
+    <motion.div
+      ref={setNodeRef}
+      style={{ ...style, x, rotate, opacity }}
+      {...listeners}
+      {...attributes}
+      drag="x"
+      dragConstraints={{ left: 0, right: 0 }}
+      dragElastic={0.7}
+      onDragEnd={(e, { offset }) => {
+        if (offset.x > 100) {
+          addBoardItem(offer);
+          setSwipedStatus("saved");
+        } else if (offset.x < -100) {
+          setSwipedStatus("dismissed");
+        }
+      }}
+      className={cn("trav-hover-card trav-glass-soft overflow-hidden rounded-xl cursor-grab active:cursor-grabbing relative touch-pan-y", isDragging ? "shadow-2xl ring-2 ring-amber-400 scale-[1.02]" : "")}
+    >
+      <motion.div 
+        style={{ opacity: saveStampOpacity }}
+        className="absolute top-4 left-4 z-20 rotate-[-15deg] rounded-lg border-[3px] border-emerald-500 bg-emerald-500/10 px-3 py-1 scale-110 shadow-sm backdrop-blur-sm pointer-events-none"
+      >
+        <span className="text-lg font-bold tracking-widest text-emerald-600 drop-shadow-sm">GUARDAR</span>
+      </motion.div>
+      <motion.div 
+        style={{ opacity: dismissStampOpacity }}
+        className="absolute top-4 right-4 z-20 rotate-[15deg] rounded-lg border-[3px] border-red-500 bg-red-500/10 px-3 py-1 scale-110 shadow-sm backdrop-blur-sm pointer-events-none"
+      >
+        <span className="text-lg font-bold tracking-widest text-red-600 drop-shadow-sm">PASO</span>
+      </motion.div>
+      
+      {children}
+    </motion.div>
   );
 }
 
@@ -251,6 +404,7 @@ export default function ChatColumn({
 }: ChatColumnProps) {
   const [openOffer, setOpenOffer] = useState<CatalogProduct | null>(null);
   const [openOfferTab, setOpenOfferTab] = useState<OfferTab>("overview");
+  const [handoffState, setHandoffState] = useState<"idle" | "requesting" | "connected">("idle");
   const { compactMode } = useTravelerPreferences();
 
   const lastAssistantIndex = useMemo(() => {
@@ -271,37 +425,58 @@ export default function ChatColumn({
 
   return (
     <div className="trav-panel trav-glass trav-reveal flex h-[clamp(320px,calc(100dvh-17rem),780px)] w-full flex-col overflow-hidden rounded-3xl transition-shadow duration-300 focus-within:shadow-[0_22px_48px_-38px_rgba(15,23,42,0.38)] sm:h-[clamp(380px,calc(100dvh-15.5rem),820px)] lg:h-[calc(100dvh-13.75rem)]">
-      <div className="border-b border-amber-100/70 bg-white/62 px-4 py-3 backdrop-blur-lg sm:px-5 sm:py-4">
-        <p className="text-xs text-slate-500">Sandbox de conversación</p>
-        <p className="mt-1 text-sm font-medium text-slate-800">
-          {activeBrain ? `Brain activo: ${activeBrain.name}` : "Modo general IVI"}
-        </p>
+      <div className="flex justify-between items-center border-b border-amber-100/70 bg-white/62 px-4 py-3 backdrop-blur-lg sm:px-5 sm:py-4">
+        <div>
+          <p className="text-xs text-slate-500">
+            {handoffState === "connected" ? "Atencion Asistida" : "Sandbox de conversacion"}
+          </p>
+          <div className="flex items-center gap-2 mt-1">
+            {handoffState === "connected" ? (
+              <span className="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+            ) : null}
+            <p className="text-sm font-medium text-slate-800">
+              {handoffState === "connected" 
+                ? "Conectado con Agente: Sofia" 
+                : (activeBrain ? `Brain activo: ${activeBrain.name}` : "Modo general IVI")}
+            </p>
+          </div>
+        </div>
+        
+        {handoffState === "idle" && (
+          <button 
+            onClick={() => {
+              setHandoffState("requesting");
+              setTimeout(() => setHandoffState("connected"), 2500);
+            }}
+            className="flex items-center gap-1.5 rounded-full bg-white/80 border border-slate-200 px-3 py-1.5 text-[11px] font-semibold text-slate-600 shadow-sm transition-all hover:bg-white hover:text-slate-900 active:scale-95"
+          >
+            <Headphones className="h-3.5 w-3.5" />
+            <span>Hablar con un Humano</span>
+          </button>
+        )}
       </div>
 
-      <div ref={centerRef} className="flex-1 space-y-4 overflow-auto overscroll-contain p-4 sm:p-6">
+      <div ref={centerRef} className="relative flex-1 space-y-4 overflow-auto overscroll-contain p-4 pb-36 sm:p-6 sm:pb-40 scroll-smooth">
+        
+        {handoffState === "requesting" && (
+          <div className="absolute top-4 left-1/2 -translate-x-1/2 z-30 trav-glass rounded-full px-4 py-2 shadow-lg border border-amber-200 flex items-center gap-3 animate-in slide-in-from-top-4">
+            <Loader2 className="h-4 w-4 animate-spin text-amber-600" />
+            <span className="text-xs font-semibold text-amber-900">Transfiriendo tu Pizarra a un Agente...</span>
+          </div>
+        )}
         {messages.length === 0 ? (
           <div className="grid h-full place-items-center">
             <div className="trav-glass-soft w-full max-w-2xl rounded-2xl p-5 text-center sm:p-6">
               <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-3xl bg-gradient-to-br from-amber-300 to-amber-500 text-sm font-semibold text-slate-900 ring-1 ring-amber-200/80 sm:h-20 sm:w-20 sm:text-base">
                 AI
               </div>
-              <p className="text-sm text-slate-500">
-                {activeBrain
-                  ? `Iniciando tu experiencia personalizada con ${activeBrain.name}...`
-                  : "Iniciando tu experiencia con IVI..."}
+              <p className="text-sm font-medium text-slate-600">
+                <TypewriterText 
+                  text={activeBrain
+                    ? `¡Hola! Soy IVI. Iniciando tu experiencia personalizada con ${activeBrain.name}...`
+                    : "¡Hola! Soy IVI. ¿A dónde soñamos viajar hoy?"} 
+                />
               </p>
-              <div className="mt-4 flex flex-wrap justify-center gap-2">
-                {QUICK_PROMPTS.map((prompt) => (
-                  <button
-                    key={prompt}
-                    type="button"
-                    onClick={() => setInput(prompt)}
-                    className="rounded-full border border-amber-100 bg-white/85 px-3 py-1.5 text-xs font-medium text-slate-700 transition hover:border-amber-200 hover:bg-amber-50/60"
-                  >
-                    {prompt}
-                  </button>
-                ))}
-              </div>
             </div>
           </div>
         ) : (
@@ -326,7 +501,16 @@ export default function ChatColumn({
                     )}
                   >
                     {message.role === "assistant" ? (
-                      message.content.trim().length > 0 ? renderAssistantMessage(message.content) : <AssistantTypingSkeleton />
+                      message.content.trim().length > 0 ? (
+                        <AssistantMessageRenderer 
+                          content={message.content} 
+                          offers={offers}
+                          onSelectOffer={(offer) => {
+                            setOpenOffer(offer);
+                            setOpenOfferTab("overview");
+                          }}
+                        />
+                      ) : <AssistantTypingSkeleton />
                     ) : (
                       <div className="whitespace-pre-wrap text-sm leading-relaxed">
                         {message.content}
@@ -336,77 +520,76 @@ export default function ChatColumn({
                 </div>
 
                 {message.role === "assistant" && index === lastAssistantIndex && topOffers.length > 0 ? (
-                  <div className="trav-glass-soft rounded-2xl p-4">
+                  <div className="trav-glass-soft rounded-2xl p-4 w-full">
                     <p className="text-xs font-semibold text-slate-700">
                       Opciones sugeridas
                     </p>
                     <p className="mt-1 text-xs text-slate-600">
                       Selecciona una opcion para continuar con IVI.
                     </p>
-                    <div className={cardsGridClass}>
+                    <div className="mt-4 flex w-full snap-x snap-mandatory overflow-x-auto scrollbar-hide gap-3 pb-3 md:grid md:grid-cols-2 xl:grid-cols-3 md:snap-none md:overflow-x-visible md:pb-0">
                       {topOffers.map((offer) => {
                         const tag = offerTag(offer);
                         const price = readOfferPrice(offer);
                         return (
-                          <div
-                            key={`offer-card-${offer.id}`}
-                            className="trav-hover-card trav-glass-soft overflow-hidden rounded-xl"
-                          >
-                            {offer.coverImage ? (
-                              <img
-                                src={offer.coverImage}
-                                alt={offer.title}
-                                className={compactCards ? "h-20 w-full object-cover" : "h-24 w-full object-cover"}
-                              />
-                            ) : (
-                              <div
-                                className={`${compactCards ? "h-20 p-2.5" : "h-24 p-3"} w-full bg-gradient-to-br ${offerCoverClass(offer)}`}
-                              >
-                                <p className="text-xs font-semibold text-white/90">
+                          <div key={`wrapper-${offer.id}`} className="shrink-0 w-[85%] snap-center md:w-auto md:shrink">
+                            <DraggableOfferCard key={`offer-card-${offer.id}`} offer={offer}>
+                              {offer.coverImage ? (
+                                <img
+                                  src={offer.coverImage}
+                                  alt={offer.title}
+                                  className={compactCards ? "h-20 w-full object-cover" : "h-24 w-full object-cover"}
+                                />
+                              ) : (
+                                <div
+                                  className={`${compactCards ? "h-20 p-2.5" : "h-24 p-3"} w-full bg-gradient-to-br ${offerCoverClass(offer)}`}
+                                >
+                                  <p className="text-xs font-semibold text-white/90">
+                                    {tag.label}
+                                  </p>
+                                  <p className={compactCards ? "mt-1 text-xs font-semibold text-white" : "mt-2 text-sm font-semibold text-white"}>
+                                    {offer.productTypeName || "Experiencia"}
+                                  </p>
+                                </div>
+                              )}
+                              <div className={compactCards ? "p-2.5" : "p-3"}>
+                                <span
+                                  className={`inline-flex rounded-full px-2 py-1 text-[10px] font-semibold ${tag.classes}`}
+                                >
                                   {tag.label}
-                                </p>
-                                <p className={compactCards ? "mt-1 text-xs font-semibold text-white" : "mt-2 text-sm font-semibold text-white"}>
-                                  {offer.productTypeName || "Experiencia"}
-                                </p>
-                              </div>
-                            )}
-                            <div className={compactCards ? "p-2.5" : "p-3"}>
-                              <span
-                                className={`inline-flex rounded-full px-2 py-1 text-[10px] font-semibold ${tag.classes}`}
-                              >
-                                {tag.label}
-                              </span>
-                              <p className={compactCards ? "mt-1 line-clamp-2 text-xs font-semibold text-slate-900" : "mt-2 line-clamp-2 text-sm font-semibold text-slate-900"}>
-                                {offer.title}
-                              </p>
-                              <p className="mt-1 line-clamp-2 text-xs text-slate-600">
-                                {offer.summary}
-                              </p>
-                              <div className={compactCards ? "mt-2 flex items-center justify-between gap-2" : "mt-3 flex items-center justify-between gap-2"}>
-                                <span className="text-xs font-semibold text-slate-700">
-                                  {formatMoney(price)}
                                 </span>
-                                <div className="flex gap-2">
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      setOpenOffer(offer);
-                                      setOpenOfferTab("overview");
-                                    }}
-                                    className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-[11px] font-semibold text-slate-700 hover:bg-slate-50"
-                                  >
-                                    Ver mas
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => onSelectOffer?.(offer)}
-                                    className="rounded-lg bg-gradient-to-r from-amber-400 to-amber-500 px-2.5 py-1.5 text-[11px] font-semibold text-slate-900 transition-all hover:from-amber-300 hover:to-amber-500 active:scale-[0.98]"
-                                  >
-                                    Quiero esta opcion
-                                  </button>
+                                <p className={compactCards ? "mt-1 line-clamp-2 text-xs font-semibold text-slate-900" : "mt-2 line-clamp-2 text-sm font-semibold text-slate-900"}>
+                                  {offer.title}
+                                </p>
+                                <p className="mt-1 line-clamp-2 text-xs text-slate-600">
+                                  {offer.summary}
+                                </p>
+                                <div className={compactCards ? "mt-2 flex items-center justify-between gap-2" : "mt-3 flex items-center justify-between gap-2"}>
+                                  <span className="text-xs font-semibold text-slate-700">
+                                    {formatMoney(price)}
+                                  </span>
+                                  <div className="flex gap-2 relative z-10" onPointerDown={(e) => e.stopPropagation()}>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setOpenOffer(offer);
+                                        setOpenOfferTab("overview");
+                                      }}
+                                      className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-[11px] font-semibold text-slate-700 hover:bg-slate-50"
+                                    >
+                                      Ver mas
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => onSelectOffer?.(offer)}
+                                      className="rounded-lg bg-gradient-to-r from-amber-400 to-amber-500 px-2.5 py-1.5 text-[11px] font-semibold text-slate-900 transition-all hover:from-amber-300 hover:to-amber-500 active:scale-[0.98]"
+                                    >
+                                      Quiero esta opcion
+                                    </button>
+                                  </div>
                                 </div>
                               </div>
-                            </div>
+                            </DraggableOfferCard>
                           </div>
                         );
                       })}
@@ -419,26 +602,67 @@ export default function ChatColumn({
         )}
       </div>
 
-      <div className="border-t border-amber-100/70 bg-white/72 px-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] pt-3 backdrop-blur-lg sm:p-5">
-        <form onSubmit={onSend} className="flex items-center gap-3">
-          <input
-            value={input}
-            onChange={(event) => setInput(event.target.value)}
-            placeholder={user.language === "en" ? "Type your message..." : "Escribe tu mensaje..."}
-            className="flex-1 rounded-2xl border border-slate-200/90 bg-white/86 px-4 py-3 text-sm outline-none transition-all placeholder:text-slate-400 focus:border-amber-300 focus:ring-4 focus:ring-amber-100 sm:px-5 sm:py-4"
-          />
-          <button
-            type="submit"
-            disabled={sending || input.trim().length === 0}
-            className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-r from-amber-400 to-amber-500 text-slate-900 transition-all hover:from-amber-300 hover:to-amber-500 active:scale-[0.98] disabled:opacity-50 sm:h-14 sm:w-14"
-          >
-            {sending ? (
-              <Loader2 className="h-4 w-4 animate-spin sm:h-5 sm:w-5" />
-            ) : (
-              <SendHorizontal className="h-4 w-4 sm:h-5 sm:w-5" />
-            )}
-          </button>
-        </form>
+      {/* STICKY CHAT INPUT */}
+      <div className="absolute bottom-4 left-4 right-4 z-20 flex flex-col sm:bottom-6 sm:left-6 sm:right-6">
+        {messages.length === 0 ? (
+          <div className="mb-4 flex flex-wrap justify-center gap-2">
+            {QUICK_PROMPTS.map((prompt) => (
+              <button
+                key={prompt}
+                type="button"
+                onClick={() => setInput(prompt)}
+                className="rounded-full border border-white/60 bg-white/70 px-4 py-2 text-xs sm:text-[13px] font-medium text-slate-700 shadow-sm backdrop-blur-md transition hover:border-amber-200 hover:bg-white"
+              >
+                {prompt}
+              </button>
+            ))}
+          </div>
+        ) : (
+          !sending && (
+          <div className="mb-3 flex w-full overflow-x-auto scrollbar-hide space-x-2 px-1">
+            {[
+              "¿Hacemos algo más romántico?",
+              "Busca algo económico",
+              "¿Qué clima hace allí?",
+              "Muéstrame el itinerario"
+            ].map((chip) => (
+              <button
+                key={chip}
+                onClick={() => setInput(chip)}
+                className="whitespace-nowrap rounded-full border border-white/60 bg-white/70 px-4 py-2 text-[13px] font-medium text-slate-700 shadow-sm backdrop-blur-md transition hover:bg-white"
+              >
+                {chip}
+              </button>
+            ))}
+          </div>
+          )
+        )}
+        
+        <div className="trav-glass-soft rounded-[2rem] p-1.5 pr-2 shadow-[0_8px_30px_rgb(0,0,0,0.08)] ring-1 ring-slate-200/50">
+          <form onSubmit={onSend} className="flex items-center gap-2">
+            <input
+              value={input}
+              onChange={(event) => setInput(event.target.value)}
+              placeholder={
+                handoffState === "connected" 
+                  ? "Habla con Sofia (Agente)..." 
+                  : (user.language === "en" ? "Type your message..." : "Habla con IVI...")
+              }
+              className="flex-1 bg-transparent px-5 py-3.5 text-[15px] outline-none placeholder:text-slate-400 text-slate-800"
+            />
+            <button
+              type="submit"
+              disabled={sending || input.trim().length === 0}
+              className="flex h-11 w-11 sm:h-12 sm:w-12 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-amber-400 to-amber-500 text-slate-900 shadow-md transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:shadow-none disabled:hover:scale-100"
+            >
+              {sending ? (
+                <Loader2 className="h-5 w-5 animate-spin" />
+              ) : (
+                <SendHorizontal className="h-5 w-5 ml-[-2px]" />
+              )}
+            </button>
+          </form>
+        </div>
       </div>
 
       {openOffer ? (

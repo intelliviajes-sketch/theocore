@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import type { ReactNode } from "react";
 import { useEffect, useRef } from "react";
@@ -15,6 +15,7 @@ const AGENCY_BREADCRUMB_LABELS: Record<string, string> = {
   ag_tools: "Herramientas",
   catalog: "Catalogo",
   catalogia: "Catalogia",
+  ag_brains: "Configuración de Brains",
 };
 
 function AgencyLayoutInner({ children }: { children: ReactNode }) {

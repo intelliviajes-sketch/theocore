@@ -49,7 +49,7 @@ async function loadBrainsForTenant(agencyId: string | null) {
     .from("ai_assistants")
     .select("*")
     .eq("active", true)
-    .in("scope", ["global", "agency"]);
+    .in("scope", ["global"]);
 
   if (globalBrainsError) {
     console.error("Error cargando brains globales:", globalBrainsError);
@@ -58,6 +58,8 @@ async function loadBrainsForTenant(agencyId: string | null) {
 
   return (globalBrains ?? []) as Brain[];
 }
+
+import { DndContext, DragEndEvent, MouseSensor, TouchSensor, useSensor, useSensors } from "@dnd-kit/core";
 
 export default function TravelerChatPage() {
   const { user: authUser } = useAuth();
@@ -73,6 +75,7 @@ export default function TravelerChatPage() {
     setInsightFromAiText,
     selectJourneyProduct,
     touchJourneyEntry,
+    addBoardItem,
   } = useTravelerWorkspace();
 
   const [user, setUser] = useState<UserLite>({
@@ -94,9 +97,30 @@ export default function TravelerChatPage() {
   const initialQueryRef = useRef(false);
   const messages = chatMessages;
   const catalogContext = useMemo(
-    () => featured.map((item) => `${item.title}${item.destination ? ` (${item.destination})` : ""}`).join(", "),
+    () => featured.map((item) => `ID: ${item.id} - ${item.title}${item.destination ? ` (${item.destination})` : ""}`).join(" | "),
     [featured],
   );
+
+  const sensors = useSensors(
+    useSensor(MouseSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    }),
+    useSensor(TouchSensor, {
+      activationConstraint: {
+        delay: 200,
+        tolerance: 8,
+      },
+    })
+  );
+
+  function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    if (over && over.id === "board-droppable" && active.data.current?.offer) {
+      addBoardItem(active.data.current.offer);
+    }
+  }
 
   function pushMessage(message: ChatMessage) {
     appendChatMessage(message);
@@ -129,9 +153,12 @@ export default function TravelerChatPage() {
       const marketContext = tenant.kind === "agency" && tenant.market
         ? `MARKET: Work for ${brandName} in ${tenant.market.countryCode}. Currency: ${tenant.market.currencyCode}. `
         : "";
-      const catalogPrompt = catalogContext ? `CATALOG: Prioritize these offers when relevant: ${catalogContext}. ` : "";
+      const catalogPrompt = catalogContext ? `CATALOG: Prioritize these offers when relevant: ${catalogContext}. Important: If you explicitly recommend a catalog product, you MUST include its tag exactly like this: [OFFER:product_id_here] on its own line to render a rich UI card. Use the actual product ID from the catalog list. ` : "";
+      const prefsPrompt = (user.prefs && Object.keys(user.prefs).length > 0)
+        ? `USER PROFILE PREFERENCES (USE THIS TO PERSONALIZE): ${JSON.stringify(user.prefs)}. `
+        : "";
 
-      let systemInstruction = `${marketContext}${catalogPrompt}INSTRUCTION: Your entire response MUST be in ${lang}. `;
+      let systemInstruction = `${marketContext}${catalogPrompt}${prefsPrompt}INSTRUCTION: Your entire response MUST be in ${lang}. `;
       if (user.name) {
         systemInstruction += `Address the user as ${user.name} and maintain a personalized tone. `;
       }
@@ -234,6 +261,15 @@ export default function TravelerChatPage() {
       appendAssistantChunk("No pude responder en este momento. Verifica el brain activo y la configuracion de la API.");
     } finally {
       setSending(false);
+
+      // Async trigger profile extraction directly (fire and forget)
+      if (authUser?.id && messages.length > 0 && messages.length % 3 === 0) {
+        fetch("/api/traveler/preferences", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ recentMessages: [...messages, userMessage].slice(-6) })
+        }).catch(err => console.error("Pref extraction background error:", err));
+      }
     }
   }
 
@@ -318,12 +354,26 @@ export default function TravelerChatPage() {
     (async () => {
       const geoCountry = tenant.market?.countryCode || tenant.agency?.countryCode || "ES";
       const geoLanguage = tenant.market?.languageCode || guessLang();
+      
+      let initialPrefs = {};
+      try {
+        if (authUser?.id) {
+          const res = await fetch("/api/traveler/preferences");
+          if (res.ok) {
+            const data = await res.json();
+            initialPrefs = data.preferences_json || {};
+          }
+        }
+      } catch (e) {
+        console.error("Failed to load global prefs", e);
+      }
+
       setUser({
         id: authUser?.id || null,
         name: authUser?.name || undefined,
         country: geoCountry,
         language: geoLanguage,
-        prefs: [],
+        prefs: Object.keys(initialPrefs).length > 0 ? [(initialPrefs as any)] : [],
       });
 
       const list = await loadBrainsForTenant(tenant.agency?.id ?? null);
@@ -338,34 +388,36 @@ export default function TravelerChatPage() {
   }, [authUser, tenant, brandName]);
 
   return (
-    <TravelerWorkspaceLayout
-      left={
-        <ChatColumn
-          messages={messages}
-          input={input}
-          sending={sending}
-          activeBrain={activeBrain}
-          user={user}
-          setInput={setInput}
-          offers={featured}
-          onSelectOffer={(offer) => {
-            void onSelectOffer(offer);
-          }}
-          onSend={(event) => {
-            event.preventDefault();
-            void onSend();
-          }}
-          centerRef={centerRef}
-        />
-      }
-      right={
-        <TravelerSalesSidebar
-          mode="chat"
-          offers={featured}
-          brandName={brandName}
-          currencyCode={tenant.market?.currencyCode || "EUR"}
-        />
-      }
-    />
+    <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
+      <TravelerWorkspaceLayout
+        left={
+          <ChatColumn
+            messages={messages}
+            input={input}
+            sending={sending}
+            activeBrain={activeBrain}
+            user={user}
+            setInput={setInput}
+            offers={featured}
+            onSelectOffer={(offer) => {
+              void onSelectOffer(offer);
+            }}
+            onSend={(event) => {
+              event.preventDefault();
+              void onSend();
+            }}
+            centerRef={centerRef}
+          />
+        }
+        right={
+          <TravelerSalesSidebar
+            mode="chat"
+            offers={featured}
+            brandName={brandName}
+            currencyCode={tenant.market?.currencyCode || "EUR"}
+          />
+        }
+      />
+    </DndContext>
   );
 }

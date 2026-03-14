@@ -1,6 +1,12 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useState, useMemo, type ReactNode } from "react";
+import { BottomSheetModal } from "./BottomSheetModal";
+import { Layers, Maximize, Minimize } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { useTravelerWorkspace } from "./TravelerWorkspaceContext";
+import { useTravelerCatalog } from "@/contexts/traveler-catalog";
+import { motion, AnimatePresence } from "motion/react";
 
 export default function TravelerWorkspaceLayout({
   topBar,
@@ -11,16 +17,91 @@ export default function TravelerWorkspaceLayout({
   left: ReactNode;
   right: ReactNode;
 }) {
-  return (
-    <div className="trav-page bg-[radial-gradient(900px_360px_at_90%_-5%,rgba(251,191,36,0.16),transparent_60%),linear-gradient(180deg,#ffffff_0%,#f8fafc_100%)]">
-      <div className="trav-container">
-        {topBar ? <div className="mb-3">{topBar}</div> : null}
+  const [isMobilePanelOpen, setIsMobilePanelOpen] = useState(false);
+  const [fullFocus, setFullFocus] = useState(false);
 
-        <div className="trav-grid">
-          <section className="trav-reveal min-w-0">{left}</section>
-          <aside className="trav-reveal hidden xl:block">{right}</aside>
+  const { journeyState } = useTravelerWorkspace();
+  const { featured } = useTravelerCatalog();
+
+  const activeProduct = useMemo(() => {
+    if (!journeyState.selectedProductId) return null;
+    return featured.find((p) => p.id === journeyState.selectedProductId) || null;
+  }, [journeyState.selectedProductId, featured]);
+
+  const bgImage = activeProduct?.coverImage || null;
+
+  return (
+    <div className="trav-page bg-[radial-gradient(900px_360px_at_90%_-5%,rgba(251,191,36,0.16),transparent_60%),linear-gradient(180deg,#ffffff_0%,#f8fafc_100%)] h-[100dvh] overflow-hidden flex flex-col relative transition-colors duration-500">
+      
+      {/* Immersive Background */}
+      <AnimatePresence>
+        {bgImage && (
+          <motion.div
+            key={bgImage}
+            initial={{ opacity: 0, scale: 1.05 }}
+            animate={{ opacity: 0.15, scale: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 1.5, ease: "easeInOut" }}
+            className="absolute inset-0 z-0 pointer-events-none"
+          >
+            <div 
+              className="absolute inset-0 bg-cover bg-center bg-no-repeat blur-[6px] saturate-150 mix-blend-multiply"
+              style={{ backgroundImage: `url(${bgImage})` }}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <div className="trav-container flex-1 flex flex-col h-full overflow-hidden relative z-10">
+        {topBar ? <div className="mb-3 shrink-0">{topBar}</div> : null}
+
+        <div 
+          className={cn(
+            "trav-grid flex-1 overflow-hidden transition-all duration-500 ease-in-out",
+            fullFocus && "!block"
+          )}
+        >
+          <section className="trav-reveal h-full overflow-hidden relative transition-all duration-500 min-w-0">
+            {left}
+          </section>
+          
+          <aside 
+            className={cn(
+              "trav-reveal hidden xl:block h-full overflow-y-auto pr-1 pb-4 transition-all duration-500",
+              fullFocus && "!hidden opacity-0 translate-x-12"
+            )}
+          >
+            {right}
+          </aside>
         </div>
+
+        {/* Full Focus Button for Desktop */}
+        <button
+          onClick={() => setFullFocus(!fullFocus)}
+          className="hidden xl:flex absolute top-2 right-4 z-40 h-10 w-10 items-center justify-center rounded-full bg-white/80 backdrop-blur-md border border-slate-200 shadow-sm text-slate-600 transition-all hover:bg-white hover:text-amber-500 hover:scale-105 active:scale-95"
+          aria-label={fullFocus ? "Salir de Full Focus" : "Entrar a Full Focus"}
+          title={fullFocus ? "Salir de Full Focus" : "Full Focus"}
+        >
+          {fullFocus ? <Minimize className="h-4 w-4" /> : <Maximize className="h-4 w-4" />}
+        </button>
+
+        {/* Floating Action Button for Mobile */}
+        <button
+          onClick={() => setIsMobilePanelOpen(true)}
+          className="fixed bottom-6 right-6 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-r from-amber-400 to-amber-500 shadow-xl shadow-amber-500/30 transition-transform active:scale-95 xl:hidden"
+          aria-label="Abrir Panel de Control"
+        >
+          <Layers className="h-6 w-6 text-slate-900" />
+        </button>
       </div>
+
+      <BottomSheetModal
+        isOpen={isMobilePanelOpen}
+        onClose={() => setIsMobilePanelOpen(false)}
+        title="Workspace & Cotización"
+      >
+        {right}
+      </BottomSheetModal>
     </div>
   );
 }
