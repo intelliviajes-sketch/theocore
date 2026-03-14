@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import { ArrowRight, CalendarDays, Plus, Send, Sparkles } from "lucide-react";
+import { ArrowRight, Plus, Send, Sparkles } from "lucide-react";
 import type { CatalogProduct } from "@/lib/catalog/travelers";
 
 type ProductTypeLite = {
@@ -68,13 +68,13 @@ export default function TravelerStartWizard({
   const [prompt, setPrompt] = useState("");
   const [productTypes, setProductTypes] = useState<ProductTypeLite[]>([]);
   const [loadingTypes, setLoadingTypes] = useState(false);
-  const [selectedTypeId, setSelectedTypeId] = useState<string>("");
+  const [hoveredTypeId, setHoveredTypeId] = useState<string | null>(null);
   const featured = featuredItems.slice(0, 4);
 
   const quickTypes = useMemo(() => pickQuickTypes(productTypes), [productTypes]);
-  const selectedType = useMemo(
-    () => quickTypes.find((item) => item.id === selectedTypeId) || null,
-    [quickTypes, selectedTypeId],
+  const hoveredType = useMemo(
+    () => quickTypes.find((item) => item.id === hoveredTypeId) || null,
+    [quickTypes, hoveredTypeId],
   );
 
   useEffect(() => {
@@ -91,8 +91,6 @@ export default function TravelerStartWizard({
         const list = (Array.isArray(payload?.types) ? payload.types : []) as ProductTypeLite[];
         if (!cancelled) {
           setProductTypes(list);
-          const quick = pickQuickTypes(list);
-          if (quick.length > 0) setSelectedTypeId((current) => current || quick[0].id);
         }
       } catch (loadError) {
         console.error("Error cargando tipos de producto en landing:", loadError);
@@ -117,10 +115,6 @@ export default function TravelerStartWizard({
   }
 
   function handleOpenPlanning() {
-    if (selectedTypeId) {
-      onStartPlanning({ typeId: selectedTypeId });
-      return;
-    }
     onStartPlanning();
   }
 
@@ -140,21 +134,31 @@ export default function TravelerStartWizard({
         </p>
 
         <div className="mx-auto mb-5 w-full max-w-2xl rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
-          <div className="flex flex-wrap items-center gap-2 sm:flex-nowrap">
+          <div className="flex flex-wrap items-center gap-2">
             <p className="shrink-0 text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">
               Tipo rapido
             </p>
-            <select
-              value={selectedTypeId}
-              onChange={(e) => setSelectedTypeId(e.target.value)}
-              className="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none transition focus:border-orange-400"
-            >
+            <div className="flex flex-wrap gap-2">
               {quickTypes.map((type) => (
-                <option key={type.id} value={type.id}>
+                <button
+                  key={type.id}
+                  type="button"
+                  onMouseEnter={() => setHoveredTypeId(type.id)}
+                  onMouseLeave={() => setHoveredTypeId((current) => (current === type.id ? null : current))}
+                  onFocus={() => setHoveredTypeId(type.id)}
+                  onBlur={() => setHoveredTypeId((current) => (current === type.id ? null : current))}
+                  onClick={() => onStartPlanning({ typeId: type.id })}
+                  className={`rounded-full px-3 py-1 text-xs transition ${
+                    hoveredTypeId === type.id
+                      ? "bg-orange-100 text-orange-700"
+                      : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                  }`}
+                  title={type.description || "Abrir planning con este tipo"}
+                >
                   {type.name}
-                </option>
+                </button>
               ))}
-            </select>
+            </div>
             <button
               type="button"
               onClick={handleOpenPlanning}
@@ -164,26 +168,10 @@ export default function TravelerStartWizard({
               <Plus className="h-4 w-4" />
             </button>
           </div>
-          <div className="mt-2 flex flex-wrap gap-2">
-            {quickTypes.map((type) => (
-              <button
-                key={type.id}
-                type="button"
-                onClick={() => setSelectedTypeId(type.id)}
-                className={`rounded-full px-3 py-1 text-xs transition ${
-                  type.id === selectedTypeId
-                    ? "bg-orange-100 text-orange-700"
-                    : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-                }`}
-              >
-                {type.name}
-              </button>
-            ))}
-          </div>
           <p className="mt-2 text-left text-xs text-slate-500">
             {loadingTypes
               ? "Cargando tipos..."
-              : selectedType?.description || "Selecciona un tipo y toca + para continuar en planning."}
+              : hoveredType?.description || "Hover en un tipo para ver descripcion. Click abre su formulario."}
           </p>
         </div>
 
@@ -209,14 +197,6 @@ export default function TravelerStartWizard({
         </form>
 
         <div className="mt-8 flex flex-row flex-wrap items-center justify-center gap-4">
-          <button
-            type="button"
-            onClick={handleOpenPlanning}
-            className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-6 py-3 text-sm font-semibold text-slate-700 shadow-sm transition-colors hover:bg-slate-50"
-          >
-            <CalendarDays className="h-4 w-4 text-slate-500" />
-            Planning clasico
-          </button>
           <button
             type="button"
             onClick={() => handleChatSubmit()}
