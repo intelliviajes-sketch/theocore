@@ -18,6 +18,9 @@ import { normalizeAssistantOutput } from "@/lib/traveler/assistant-output";
 import { trackTravelerEvent } from "@/lib/traveler/tracking";
 
 const LANDING_PROMPT_STORAGE_KEY = "traveler:landingPrompt";
+// TODO(landing-handoff): mantener trazabilidad de este flujo.
+// Si vuelve el bug de "Procesando..." desde /traveler, revisar primero:
+// `landingPrompt` -> effect de auto-send -> `sendMessage`.
 
 function pickBestChatBrain(brains: Brain[], preferredBrainId: string | null | undefined) {
   if (preferredBrainId) {
@@ -432,6 +435,16 @@ export default function TravelerChatPage() {
     let cancelled = false;
     const query = landingPrompt;
     const run = async () => {
+      // TODO(landing-handoff): Caso pendiente en producción (collaviajes.com):
+      // cuando la navegación llega con /traveler/chat?from=landing&q=..., en algunos escenarios
+      // queda en "Procesando tu mensaje..." y no llega la primera respuesta.
+      // Estado actual:
+      // - flujo normal desde input interno de /chat funciona correctamente.
+      // - flujo auto-send desde landing falla de forma intermitente según tenant/contexto.
+      // Próximo enfoque sugerido:
+      // 1) instrumentar métricas/telemetría por pasos (detect prompt, create session, push user msg, fetch start, first chunk).
+      // 2) agregar mecanismo idempotente de auto-send con reintento controlado por timeout.
+      // 3) considerar endpoint dedicado de handoff server-side para evitar dependencias de estado cliente.
       if (!query || initialQueryRef.current || !isLandingPromptFlow) return;
       initialQueryRef.current = true;
       setInput("");
