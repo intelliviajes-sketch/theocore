@@ -62,6 +62,7 @@ export default function TravelerChatPage() {
 
   const [brains, setBrains] = useState<Brain[]>([]);
   const [activeBrainId, setActiveBrainId] = useState<string | null>(null);
+  const [brainsLoaded, setBrainsLoaded] = useState(false);
 
   const activeBrain = useMemo(() => brains.find((brain) => brain.id === activeBrainId) || null, [brains, activeBrainId]);
 
@@ -421,6 +422,7 @@ export default function TravelerChatPage() {
     const query = landingPrompt;
     const run = async () => {
       if (!query || initialQueryRef.current || !isLandingPromptFlow) return;
+      if (tenant.kind === "agency" && !brainsLoaded) return;
       initialQueryRef.current = true;
       setInput("");
       await createNewChatSession(activeBrain?.id ?? null);
@@ -436,12 +438,13 @@ export default function TravelerChatPage() {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [landingPrompt, activeBrain, createNewChatSession, isLandingPromptFlow]);
+  }, [landingPrompt, activeBrain, brainsLoaded, createNewChatSession, isLandingPromptFlow, tenant.kind]);
 
   useEffect(() => {
     let cancelled = false;
 
     const run = async () => {
+      setBrainsLoaded(false);
       const agencyId = tenant.kind === "agency" ? tenant.agency?.id ?? null : null;
       const geoCountry = tenant.market?.countryCode || tenant.agency?.countryCode || "ES";
       const geoLanguage = tenant.market?.languageCode || guessLang();
@@ -477,6 +480,7 @@ export default function TravelerChatPage() {
 
       const nextBrain = pickBestChatBrain(list, tenant.market?.defaultBrainId);
       setActiveBrainId(nextBrain?.id ?? null);
+      setBrainsLoaded(true);
     };
 
     void run();
