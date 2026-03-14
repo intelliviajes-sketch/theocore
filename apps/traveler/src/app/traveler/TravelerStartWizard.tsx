@@ -15,7 +15,6 @@ import {
   Sparkles,
   X,
 } from "lucide-react";
-import { supabaseBrowser as supabase } from "@/lib/supabase/client";
 import type { CatalogProduct } from "@/lib/catalog/travelers";
 
 type ProductTypeLite = {
@@ -94,7 +93,6 @@ function getTypeIcon(name: string) {
 export default function TravelerStartWizard({
   brandName,
   localeLabel,
-  agencyId,
   featuredItems,
   onStartChat,
   onStartPlanning,
@@ -102,7 +100,6 @@ export default function TravelerStartWizard({
 }: {
   brandName: string;
   localeLabel: string;
-  agencyId: string | null;
   featuredItems: CatalogProduct[];
   onStartChat: (initialMessage?: string) => void;
   onStartPlanning: (payload?: StartPlanningPayload) => void;
@@ -135,18 +132,13 @@ export default function TravelerStartWizard({
     const run = async () => {
       setLoadingTypes(true);
       try {
-        const { data, error } = await supabase
-          .from("product_types")
-          .select("id, name, description, scope, owner_agency_id, current_version")
-          .eq("active", true)
-          .order("name", { ascending: true });
-
-        if (error) throw error;
-
-        const filtered = ((data ?? []) as ProductTypeLite[]).filter((item) => {
-          if (item.scope === "global") return true;
-          return agencyId && item.owner_agency_id === agencyId;
+        const response = await fetch("/api/traveler/product-types", {
+          method: "GET",
+          headers: { Accept: "application/json" },
+          cache: "no-store",
         });
+        const payload = await response.json().catch(() => ({}));
+        const filtered = (Array.isArray(payload?.types) ? payload.types : []) as ProductTypeLite[];
 
         if (!cancelled) {
           setProductTypes(filtered);
@@ -162,7 +154,7 @@ export default function TravelerStartWizard({
     return () => {
       cancelled = true;
     };
-  }, [agencyId]);
+  }, []);
 
   async function ensureTypeFields(typeId: string) {
     if (fieldsByTypeId[typeId] || loadingFieldsByTypeId[typeId]) return;

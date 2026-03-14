@@ -49,7 +49,6 @@ export default function TravelerLandingPage() {
         <TravelerStartWizard
           brandName={brandName}
           localeLabel={localeLabel}
-          agencyId={tenant.agency?.id ?? null}
           featuredItems={featured}
           onStartChat={onStartChat}
           onStartPlanning={onStartPlanning}
