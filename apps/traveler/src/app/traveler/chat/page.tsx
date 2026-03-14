@@ -17,6 +17,8 @@ import { loadBrainsForTenant } from "@/lib/traveler/brains";
 import { normalizeAssistantOutput } from "@/lib/traveler/assistant-output";
 import { trackTravelerEvent } from "@/lib/traveler/tracking";
 
+const LANDING_PROMPT_STORAGE_KEY = "traveler:landingPrompt";
+
 function pickBestChatBrain(brains: Brain[], preferredBrainId: string | null | undefined) {
   if (preferredBrainId) {
     const preferred = brains.find((brain) => brain.id === preferredBrainId);
@@ -65,14 +67,18 @@ export default function TravelerChatPage() {
 
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
+  const [storedLandingPrompt, setStoredLandingPrompt] = useState("");
+  const [isLandingPromptFlow, setIsLandingPromptFlow] = useState(false);
   const centerRef = useRef<HTMLDivElement>(null);
   const focusedProductRef = useRef<string | null>(null);
   const initialQueryRef = useRef(false);
   const messagesRef = useRef<ChatMessage[]>(chatMessages);
   const messages = chatMessages;
+  const fromLanding = (searchParams.get("from") || "").toLowerCase() === "landing";
   const queryFromLanding = (searchParams.get("q") || "").trim();
   const productFromCatalog = (searchParams.get("product") || "").trim();
-  const suppressCatalogSuggestions = queryFromLanding.length > 0 && productFromCatalog.length === 0;
+  const landingPrompt = (queryFromLanding || storedLandingPrompt).trim();
+  const suppressCatalogSuggestions = isLandingPromptFlow && productFromCatalog.length === 0;
   const catalogContext = useMemo(
     () =>
       suppressCatalogSuggestions
@@ -82,6 +88,37 @@ export default function TravelerChatPage() {
             .join(" | "),
     [featured, suppressCatalogSuggestions],
   );
+
+  useEffect(() => {
+    if (productFromCatalog.length > 0) {
+      setStoredLandingPrompt("");
+      setIsLandingPromptFlow(false);
+      return;
+    }
+
+    if (queryFromLanding.length > 0) {
+      setStoredLandingPrompt("");
+      setIsLandingPromptFlow(true);
+      return;
+    }
+
+    if (!fromLanding) {
+      setStoredLandingPrompt("");
+      setIsLandingPromptFlow(false);
+      return;
+    }
+
+    const storedPrompt = window.sessionStorage.getItem(LANDING_PROMPT_STORAGE_KEY)?.trim() || "";
+    if (storedPrompt.length > 0) {
+      setStoredLandingPrompt(storedPrompt);
+      setIsLandingPromptFlow(true);
+      window.sessionStorage.removeItem(LANDING_PROMPT_STORAGE_KEY);
+      return;
+    }
+
+    setStoredLandingPrompt("");
+    setIsLandingPromptFlow(false);
+  }, [fromLanding, productFromCatalog, queryFromLanding]);
 
   const sensors = useSensors(
     useSensor(MouseSensor, {
@@ -305,7 +342,7 @@ export default function TravelerChatPage() {
       source: "chat-cards",
     });
     await sendMessage(
-      `Quiero esta opción: ${offer.title}. Ajústala para mi madre y para una estancia de 10 días en Madrid.`,
+      `Quiero esta opciÃ³n: ${offer.title}. AjÃºstala para mi madre y para una estancia de 10 dÃ­as en Madrid.`,
     );
   }
 
@@ -354,16 +391,14 @@ export default function TravelerChatPage() {
 
   useEffect(() => {
     let cancelled = false;
-    const query = queryFromLanding;
+    const query = landingPrompt;
     const run = async () => {
-      if (!query || initialQueryRef.current || !activeBrain) return;
+      if (!query || initialQueryRef.current || !activeBrain || !isLandingPromptFlow) return;
       initialQueryRef.current = true;
       setInput(query);
       await createNewChatSession(activeBrain?.id ?? null);
       if (cancelled) return;
-      setTimeout(() => {
-        void sendMessage(query);
-      }, 250);
+      void sendMessage(query);
     };
 
     void run();
@@ -371,7 +406,7 @@ export default function TravelerChatPage() {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [queryFromLanding, activeBrain, createNewChatSession]);
+  }, [landingPrompt, activeBrain, createNewChatSession, isLandingPromptFlow]);
 
   useEffect(() => {
     let cancelled = false;

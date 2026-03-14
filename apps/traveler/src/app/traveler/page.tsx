@@ -8,6 +8,8 @@ import { getTenantBrandName, getTenantLocaleLabel } from "@/lib/tenant/presentat
 import { useTravelerWorkspace } from "./TravelerWorkspaceContext";
 import TravelerStartWizard from "./TravelerStartWizard";
 
+const LANDING_PROMPT_STORAGE_KEY = "traveler:landingPrompt";
+
 export default function TravelerLandingPage() {
   const router = useRouter();
   const tenant = useTenant();
@@ -19,7 +21,11 @@ export default function TravelerLandingPage() {
 
   function onStartChat(initialMessage?: string) {
     beginJourneyFromMode("chat");
-    const url = initialMessage ? `/traveler/chat?q=${encodeURIComponent(initialMessage)}` : "/traveler/chat";
+    const normalizedMessage = initialMessage?.trim() ?? "";
+    if (normalizedMessage) {
+      window.sessionStorage.setItem(LANDING_PROMPT_STORAGE_KEY, normalizedMessage);
+    }
+    const url = normalizedMessage ? "/traveler/chat?from=landing" : "/traveler/chat";
     router.push(url);
   }
 

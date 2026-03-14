@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState, useMemo, type ReactNode } from "react";
 import { BottomSheetModal } from "./BottomSheetModal";
@@ -53,6 +53,18 @@ export default function TravelerWorkspaceLayout({
 
       <div className="trav-container flex-1 flex flex-col h-full overflow-hidden relative z-10">
         {topBar ? <div className="mb-3 shrink-0">{topBar}</div> : null}
+        {hasRightPanel ? (
+          <div className="mb-2 hidden justify-end xl:flex">
+            <button
+              onClick={() => setFullFocus(!fullFocus)}
+              className="flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white/80 text-slate-600 shadow-sm backdrop-blur-md transition-all hover:bg-white hover:text-amber-500 hover:scale-105 active:scale-95"
+              aria-label={fullFocus ? "Salir de Full Focus" : "Entrar a Full Focus"}
+              title={fullFocus ? "Salir de Full Focus" : "Full Focus"}
+            >
+              {fullFocus ? <Minimize className="h-4 w-4" /> : <Maximize className="h-4 w-4" />}
+            </button>
+          </div>
+        ) : null}
 
         <div
           className={cn(
@@ -75,15 +87,6 @@ export default function TravelerWorkspaceLayout({
             </aside>
           ) : null}
         </div>
-
-        <button
-          onClick={() => setFullFocus(!fullFocus)}
-          className="hidden xl:flex absolute top-2 right-4 z-40 h-10 w-10 items-center justify-center rounded-full bg-white/80 backdrop-blur-md border border-slate-200 shadow-sm text-slate-600 transition-all hover:bg-white hover:text-amber-500 hover:scale-105 active:scale-95"
-          aria-label={fullFocus ? "Salir de Full Focus" : "Entrar a Full Focus"}
-          title={fullFocus ? "Salir de Full Focus" : "Full Focus"}
-        >
-          {fullFocus ? <Minimize className="h-4 w-4" /> : <Maximize className="h-4 w-4" />}
-        </button>
 
         {hasRightPanel ? (
           <button
