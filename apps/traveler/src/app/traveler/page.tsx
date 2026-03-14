@@ -14,7 +14,7 @@ export default function TravelerLandingPage() {
   const router = useRouter();
   const tenant = useTenant();
   const { featured } = useTravelerCatalog();
-  const { beginJourneyFromMode, updatePlanningState } = useTravelerWorkspace();
+  const { beginJourneyFromMode, updatePlanningState, setPendingChatPrompt } = useTravelerWorkspace();
 
   const brandName = useMemo(() => getTenantBrandName(tenant), [tenant]);
   const localeLabel = useMemo(() => getTenantLocaleLabel(tenant), [tenant]);
@@ -22,6 +22,7 @@ export default function TravelerLandingPage() {
   function onStartChat(initialMessage?: string) {
     beginJourneyFromMode("chat");
     const normalizedMessage = initialMessage?.trim() ?? "";
+    setPendingChatPrompt(normalizedMessage || null);
     if (normalizedMessage) {
       window.sessionStorage.setItem(LANDING_PROMPT_STORAGE_KEY, normalizedMessage);
     }

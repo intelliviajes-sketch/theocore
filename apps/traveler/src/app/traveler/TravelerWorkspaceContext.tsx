@@ -125,6 +125,8 @@ type TouchJourneyEntryPatch = {
 };
 
 type TravelerWorkspaceContextValue = {
+  pendingChatPrompt: string | null;
+  setPendingChatPrompt: (value: string | null) => void;
   chatSessionId: string | null;
   chatSessions: ChatSessionSummary[];
   chatMessages: ChatMessage[];
@@ -335,6 +337,7 @@ export function TravelerWorkspaceProvider({
 }) {
   const [chatSessionId, setChatSessionId] = useState<string | null>(null);
   const chatSessionIdRef = useRef<string | null>(null);
+  const [pendingChatPrompt, setPendingChatPrompt] = useState<string | null>(null);
   const [chatSessions, setChatSessions] = useState<ChatSessionSummary[]>([]);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [loadingChatSessions, setLoadingChatSessions] = useState(false);
@@ -1050,6 +1053,8 @@ export function TravelerWorkspaceProvider({
   }, [userId, reloadChatSessions]);
 
   const value: TravelerWorkspaceContextValue = {
+    pendingChatPrompt,
+    setPendingChatPrompt,
     chatSessionId,
     chatSessions,
     chatMessages,

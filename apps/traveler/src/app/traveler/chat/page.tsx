@@ -40,6 +40,8 @@ export default function TravelerChatPage() {
   const searchParams = useSearchParams();
   const brandName = getTenantBrandName(tenant);
   const {
+    pendingChatPrompt,
+    setPendingChatPrompt,
     chatMessages,
     setChatMessages,
     appendChatMessage,
@@ -80,7 +82,8 @@ export default function TravelerChatPage() {
   const fromLanding = (searchParams.get("from") || "").toLowerCase() === "landing";
   const queryFromLanding = (searchParams.get("q") || "").trim();
   const productFromCatalog = (searchParams.get("product") || "").trim();
-  const landingPrompt = (queryFromLanding || storedLandingPrompt).trim();
+  const pendingPrompt = pendingChatPrompt?.trim() ?? "";
+  const landingPrompt = (queryFromLanding || storedLandingPrompt || pendingPrompt).trim();
   const suppressCatalogSuggestions = isLandingPromptFlow && productFromCatalog.length === 0;
   const landingUiSuppression = suppressCatalogSuggestions && !hasMessagesEver;
   const catalogContext = useMemo(
@@ -104,10 +107,18 @@ export default function TravelerChatPage() {
       setStoredLandingPrompt("");
       setIsLandingPromptFlow(false);
       setShowLandingProcessing(true);
+      if (pendingChatPrompt) setPendingChatPrompt(null);
       return;
     }
 
     if (queryFromLanding.length > 0) {
+      setStoredLandingPrompt("");
+      setIsLandingPromptFlow(true);
+      setShowLandingProcessing(true);
+      return;
+    }
+
+    if (pendingPrompt.length > 0) {
       setStoredLandingPrompt("");
       setIsLandingPromptFlow(true);
       setShowLandingProcessing(true);
@@ -133,7 +144,7 @@ export default function TravelerChatPage() {
     setStoredLandingPrompt("");
     setIsLandingPromptFlow(false);
     setShowLandingProcessing(true);
-  }, [fromLanding, productFromCatalog, queryFromLanding]);
+  }, [fromLanding, pendingChatPrompt, pendingPrompt, productFromCatalog, queryFromLanding, setPendingChatPrompt]);
 
   useEffect(() => {
     if (!landingUiSuppression || messages.length > 0) {
@@ -425,6 +436,7 @@ export default function TravelerChatPage() {
       if (tenant.kind === "agency" && !brainsLoaded) return;
       initialQueryRef.current = true;
       setInput("");
+      setPendingChatPrompt(null);
       await createNewChatSession(activeBrain?.id ?? null);
       if (cancelled) return;
       // Ensure the first prompt starts from a clean chat context.
@@ -438,7 +450,7 @@ export default function TravelerChatPage() {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [landingPrompt, activeBrain, brainsLoaded, createNewChatSession, isLandingPromptFlow, tenant.kind]);
+  }, [landingPrompt, activeBrain, brainsLoaded, createNewChatSession, isLandingPromptFlow, setPendingChatPrompt, tenant.kind]);
 
   useEffect(() => {
     let cancelled = false;
