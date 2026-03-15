@@ -49,6 +49,7 @@ export type Country = {
 export type Brain = {
   id: string;
   name: string;
+  logo_url: string | null;
   active: boolean;
   target_lang: string | null;
   scope: "global" | "agency" | null;
@@ -71,6 +72,14 @@ export type AgencyBrainAssignment = {
   language_overrides: string[] | null;
 };
 
+export type AgencyBranding = {
+  logo_url: string | null;
+  mascot_brain_id: string | null;
+  mascot_name: string | null;
+  mascot_brain_logo_url: string | null;
+  hero_config: Record<string, unknown>;
+};
+
 export type AgencySavePayload = {
   id?: string;
   commercial_name: string;
@@ -83,6 +92,10 @@ export type AgencySavePayload = {
   tax_id: string | null;
   bank_information: Record<string, unknown>;
   active: boolean;
+  logo_url: string | null;
+  mascot_brain_id: string | null;
+  mascot_name: string | null;
+  mascot_brain_logo_url: string | null;
   brain_ids: string[];
   brain_assignments: AgencyBrainAssignment[];
   domains: AgencyDomain[];
@@ -126,6 +139,7 @@ export function useGlobalAgencies() {
   const [brains, setBrains] = useState<Brain[]>([]);
   const [brainAssignments, setBrainAssignments] = useState<Record<string, string[]>>({});
   const [brainAssignmentDetailsByAgency, setBrainAssignmentDetailsByAgency] = useState<Record<string, AgencyBrainAssignment[]>>({});
+  const [brandingByAgency, setBrandingByAgency] = useState<Record<string, AgencyBranding>>({});
   const [domainByAgency, setDomainByAgency] = useState<Record<string, AgencyDomain[]>>({});
   const [marketConfigByAgency, setMarketConfigByAgency] = useState<Record<string, AgencyMarketConfig[]>>({});
   const [teamCountByAgency, setTeamCountByAgency] = useState<Record<string, number>>({});
@@ -140,6 +154,7 @@ export function useGlobalAgencies() {
         { data: countriesData, error: countriesError },
         { data: brainsData, error: brainsError },
         { data: assignmentsData, error: assignmentsError },
+        { data: brandingData, error: brandingError },
         { data: domainsData, error: domainsError },
         { data: marketConfigData, error: marketConfigError },
         { data: teamData, error: teamError },
@@ -149,13 +164,16 @@ export function useGlobalAgencies() {
         supabase.from("countries").select("code, name, phone_prefix, emoji_flag").order("name", { ascending: true }),
         supabase
           .from("ai_assistants")
-          .select("id, name, active, target_lang, scope, owner_agency_id, created_for_agency_id, execution_layer, brain_category, brain_type")
+          .select("id, name, logo_url, active, target_lang, scope, owner_agency_id, created_for_agency_id, execution_layer, brain_category, brain_type")
           .order("name", { ascending: true }),
         supabase
           .from("agencies_ai_assistants")
           .select(
             "agency_id, ai_assistant_id, persona_profile, strategic_concept, market_segment, monetization_model, visibility_level, custom_business_rules, execution_overrides, language_overrides",
           ),
+        supabase
+          .from("agency_branding")
+          .select("agency_id, logo_url, hero_config"),
         supabase
           .from("agency_domains")
           .select("id, agency_id, domain, country_code, is_primary, active")
@@ -173,6 +191,7 @@ export function useGlobalAgencies() {
       if (countriesError) throw countriesError;
       if (brainsError) throw brainsError;
       if (assignmentsError) throw assignmentsError;
+      if (brandingError) throw brandingError;
       if (domainsError) throw domainsError;
       if (marketConfigError) throw marketConfigError;
       if (teamError) throw teamError;
@@ -222,6 +241,34 @@ export function useGlobalAgencies() {
         });
       }
 
+      const nextBranding: Record<string, AgencyBranding> = {};
+      for (const row of brandingData || []) {
+        const agencyId = String(row.agency_id || "");
+        if (!agencyId) continue;
+
+        const heroConfig = asJsonObject(row.hero_config);
+        const mascotBrainIdRaw = heroConfig.mascot_brain_id;
+        const mascotNameRaw = heroConfig.mascot_name;
+        const mascotBrainLogoRaw = heroConfig.mascot_brain_logo_url;
+
+        nextBranding[agencyId] = {
+          logo_url: typeof row.logo_url === "string" && row.logo_url.trim().length > 0 ? row.logo_url.trim() : null,
+          mascot_brain_id:
+            typeof mascotBrainIdRaw === "string" && mascotBrainIdRaw.trim().length > 0
+              ? mascotBrainIdRaw.trim()
+              : null,
+          mascot_name:
+            typeof mascotNameRaw === "string" && mascotNameRaw.trim().length > 0
+              ? mascotNameRaw.trim()
+              : null,
+          mascot_brain_logo_url:
+            typeof mascotBrainLogoRaw === "string" && mascotBrainLogoRaw.trim().length > 0
+              ? mascotBrainLogoRaw.trim()
+              : null,
+          hero_config: heroConfig,
+        };
+      }
+
       const nextMarketConfigs: Record<string, AgencyMarketConfig[]> = {};
       for (const row of marketConfigData || []) {
         const agencyId = String(row.agency_id || "");
@@ -261,6 +308,7 @@ export function useGlobalAgencies() {
       setBrains((brainsData as Brain[]) || []);
       setBrainAssignments(nextAssignments);
       setBrainAssignmentDetailsByAgency(nextAssignmentDetails);
+      setBrandingByAgency(nextBranding);
       setDomainByAgency(nextDomains);
       setMarketConfigByAgency(nextMarketConfigs);
       setTeamCountByAgency(nextTeamCount);
@@ -281,6 +329,10 @@ export function useGlobalAgencies() {
       brain_assignments,
       domains,
       market_configs,
+      logo_url,
+      mascot_brain_id,
+      mascot_name,
+      mascot_brain_logo_url,
       id,
       ...agencyPayload
     } = payload;
@@ -377,6 +429,42 @@ export function useGlobalAgencies() {
       );
       if (insertRelationError) throw insertRelationError;
     }
+
+    const { data: currentBranding } = await supabase
+      .from("agency_branding")
+      .select("hero_config")
+      .eq("agency_id", agencyId)
+      .maybeSingle();
+
+    const nextHeroConfig = asJsonObject(currentBranding?.hero_config);
+    if (mascot_brain_id) {
+      nextHeroConfig.mascot_brain_id = mascot_brain_id;
+    } else {
+      delete nextHeroConfig.mascot_brain_id;
+    }
+    if (mascot_name) {
+      nextHeroConfig.mascot_name = mascot_name;
+    } else {
+      delete nextHeroConfig.mascot_name;
+    }
+    if (mascot_brain_logo_url) {
+      nextHeroConfig.mascot_brain_logo_url = mascot_brain_logo_url;
+    } else {
+      delete nextHeroConfig.mascot_brain_logo_url;
+    }
+
+    const { error: brandingUpsertError } = await supabase
+      .from("agency_branding")
+      .upsert(
+        {
+          agency_id: agencyId,
+          logo_url: logo_url || null,
+          hero_config: nextHeroConfig,
+        },
+        { onConflict: "agency_id" },
+      );
+
+    if (brandingUpsertError) throw brandingUpsertError;
   }, []);
 
   const deleteAgency = useCallback(async (agencyId: string) => {
@@ -396,6 +484,7 @@ export function useGlobalAgencies() {
     brains,
     brainAssignments,
     brainAssignmentDetailsByAgency,
+    brandingByAgency,
     domainByAgency,
     marketConfigByAgency,
     teamCountByAgency,

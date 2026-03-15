@@ -31,6 +31,20 @@ export default function TravelerLayout({ children }: { children: React.ReactNode
   const tenant = useTenant();
   const brandName = useMemo(() => getTenantBrandName(tenant), [tenant]);
   const localeLabel = useMemo(() => getTenantLocaleLabel(tenant), [tenant]);
+  const branding = tenant.branding;
+  const brandLogoUrl =
+    typeof branding?.logoUrl === "string" && branding.logoUrl.trim().length > 0
+      ? branding.logoUrl.trim()
+      : null;
+  const heroConfig = branding?.heroConfig ?? {};
+  const mascotName =
+    typeof heroConfig["mascot_name"] === "string" && heroConfig["mascot_name"].trim().length > 0
+      ? heroConfig["mascot_name"].trim()
+      : null;
+  const mascotBrainLogoUrl =
+    typeof heroConfig["mascot_brain_logo_url"] === "string" && heroConfig["mascot_brain_logo_url"].trim().length > 0
+      ? heroConfig["mascot_brain_logo_url"].trim()
+      : null;
   const { compactMode } = useTravelerPreferences();
 
   const [user, setUser] = useState<UserType | null>(null);
@@ -150,12 +164,24 @@ export default function TravelerLayout({ children }: { children: React.ReactNode
               <div className="trav-container px-3 py-3 sm:px-5">
                 <div className="flex items-center justify-between">
                   <Link href="/traveler" className="inline-flex items-center gap-3">
-                    <span className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-300 to-amber-500 text-xs font-bold tracking-[0.08em] text-slate-900 shadow-sm ring-1 ring-amber-200/80">
-                      IVI
+                    <span className="inline-flex h-10 w-10 items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-br from-amber-300 to-amber-500 text-xs font-bold tracking-[0.08em] text-slate-900 shadow-sm ring-1 ring-amber-200/80">
+                      {brandLogoUrl ? (
+                        <img src={brandLogoUrl} alt={brandName} className="h-full w-full object-cover" />
+                      ) : (
+                        "IVI"
+                      )}
                     </span>
                     <span className="hidden sm:block">
                       <p className="text-sm font-semibold text-slate-900">{brandName}</p>
                       <p className="text-[11px] text-slate-500">{localeLabel}</p>
+                      {mascotName ? (
+                        <span className="mt-1 inline-flex items-center gap-1.5 rounded-full border border-amber-200/80 bg-amber-50/80 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-amber-700">
+                          {mascotBrainLogoUrl ? (
+                            <img src={mascotBrainLogoUrl} alt={mascotName} className="h-4 w-4 rounded-full object-cover" />
+                          ) : null}
+                          {mascotName}
+                        </span>
+                      ) : null}
                     </span>
                   </Link>
 
