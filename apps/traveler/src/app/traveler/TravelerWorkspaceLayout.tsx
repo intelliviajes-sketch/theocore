@@ -30,7 +30,11 @@ export default function TravelerWorkspaceLayout({
   const bgImage = activeProduct?.coverImage || null;
 
   return (
-    <div className="trav-page bg-[radial-gradient(900px_360px_at_90%_-5%,rgba(251,191,36,0.16),transparent_60%),linear-gradient(180deg,#ffffff_0%,#f8fafc_100%)] h-[100dvh] overflow-hidden flex flex-col relative transition-colors duration-500">
+    <div className="trav-page bg-[radial-gradient(980px_420px_at_92%_-8%,rgba(251,191,36,0.17),transparent_62%),radial-gradient(860px_340px_at_8%_0%,rgba(14,165,233,0.1),transparent_60%),linear-gradient(180deg,#ffffff_0%,#f8fafc_100%)] h-[100dvh] overflow-hidden flex flex-col relative transition-colors duration-500">
+      <div className="pointer-events-none absolute inset-0 z-0">
+        <div className="absolute -right-24 top-12 h-64 w-64 rounded-full bg-amber-300/20 blur-3xl" />
+        <div className="absolute -left-24 bottom-8 h-64 w-64 rounded-full bg-sky-300/20 blur-3xl" />
+      </div>
       <AnimatePresence>
         {bgImage && (
           <motion.div
@@ -51,13 +55,13 @@ export default function TravelerWorkspaceLayout({
 
       <div className="trav-container flex-1 flex flex-col h-full overflow-hidden relative z-10">
         {topBar ? <div className="mb-3 shrink-0">{topBar}</div> : null}
-        <div className="trav-grid flex-1 overflow-hidden transition-all duration-500 ease-in-out">
-          <section className="trav-reveal h-full overflow-hidden relative transition-all duration-500 min-w-0">
+        <div className="trav-grid trav-layout-divider flex-1 overflow-hidden transition-all duration-500 ease-in-out">
+          <section className="trav-reveal trav-layout-pane h-full overflow-hidden relative transition-all duration-500 min-w-0">
             {left}
           </section>
 
           {hasRightPanel ? (
-            <aside className="trav-reveal hidden lg:block h-full overflow-y-auto pr-1 pb-4 transition-all duration-500">
+            <aside className="trav-reveal trav-layout-pane trav-layout-pane--right hidden lg:block h-full overflow-y-auto pr-1 pb-4 transition-all duration-500">
               {right}
             </aside>
           ) : null}

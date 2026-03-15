@@ -2,7 +2,17 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import { Plus, Send, Sparkles } from "lucide-react";
+import {
+  BriefcaseBusiness,
+  CalendarDays,
+  Lightbulb,
+  Plus,
+  ReceiptText,
+  Send,
+  SlidersHorizontal,
+  Sparkles,
+  Wand2,
+} from "lucide-react";
 import type { CatalogProduct } from "@/lib/catalog/travelers";
 
 type ProductTypeLite = {
@@ -23,26 +33,38 @@ const JOURNEY_STEPS = [
   {
     title: "Idea inicial",
     description: "Escribe tu objetivo de viaje con el mayor contexto posible.",
+    icon: Lightbulb,
+    tone: "text-amber-600 bg-amber-100 border-amber-200",
   },
   {
     title: "Destino y fechas",
     description: "Definimos ciudad, temporada y duracion para enfocar opciones.",
+    icon: CalendarDays,
+    tone: "text-sky-600 bg-sky-100 border-sky-200",
   },
   {
     title: "Tipo de producto",
     description: "Selecciona paquete, hotel, vuelo o excursion para activar su formulario.",
+    icon: BriefcaseBusiness,
+    tone: "text-indigo-600 bg-indigo-100 border-indigo-200",
   },
   {
     title: "Plan personalizado",
     description: "La IA propone alternativas adaptadas a presupuesto y estilo.",
+    icon: Wand2,
+    tone: "text-violet-600 bg-violet-100 border-violet-200",
   },
   {
     title: "Ajustes finos",
     description: "Refinamos detalles por preferencias, acompanantes y ritmo.",
+    icon: SlidersHorizontal,
+    tone: "text-teal-600 bg-teal-100 border-teal-200",
   },
   {
     title: "Cotizacion final",
     description: "Consolidamos la propuesta lista para pasar a booking.",
+    icon: ReceiptText,
+    tone: "text-emerald-600 bg-emerald-100 border-emerald-200",
   },
 ];
 
@@ -247,8 +269,10 @@ export default function TravelerStartWizard({
             )}
           </section>
 
-          <aside className="relative hidden overflow-hidden rounded-[2rem] border border-slate-200/80 bg-white/90 p-5 shadow-xl lg:flex lg:flex-col">
-            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(420px_240px_at_85%_10%,rgba(251,191,36,0.28),transparent_75%),radial-gradient(320px_180px_at_20%_80%,rgba(251,146,60,0.2),transparent_70%)]" />
+          <aside className="relative hidden overflow-hidden rounded-[2rem] border border-slate-200/80 bg-white/88 p-5 shadow-xl lg:flex lg:flex-col">
+            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(420px_240px_at_85%_10%,rgba(251,191,36,0.3),transparent_75%),radial-gradient(320px_180px_at_20%_80%,rgba(251,146,60,0.22),transparent_70%)]" />
+            <div className="pointer-events-none absolute -right-8 -top-8 h-36 w-36 rounded-full bg-amber-300/35 blur-3xl" />
+            <div className="pointer-events-none absolute -bottom-10 -left-10 h-36 w-36 rounded-full bg-orange-300/25 blur-3xl" />
             <div className="relative z-10">
               <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Ruta sugerida</p>
               <h2 className="mt-2 text-xl font-semibold text-slate-900">Viaje en 6 pasos</h2>
@@ -256,14 +280,28 @@ export default function TravelerStartWizard({
                 Estructura rapida para pasar de idea a cotizacion sin perder contexto.
               </p>
             </div>
-            <ol className="relative z-10 mt-5 space-y-2.5">
+            <div className="relative z-10 mt-4 flex items-center justify-between rounded-2xl border border-slate-200/80 bg-white/70 px-3 py-2">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">Flujo guiado</p>
+              <p className="rounded-full bg-slate-900 px-2 py-0.5 text-[10px] font-semibold text-white">6/6</p>
+            </div>
+            <ol className="relative z-10 mt-4 space-y-2.5">
               {JOURNEY_STEPS.map((step, index) => (
-                <li key={step.title} className="rounded-2xl border border-slate-200/80 bg-white/85 px-3 py-2.5">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-orange-700">
-                    Paso {index + 1}
-                  </p>
-                  <p className="mt-0.5 text-sm font-semibold text-slate-800">{step.title}</p>
-                  <p className="mt-0.5 text-xs leading-relaxed text-slate-600">{step.description}</p>
+                <li key={step.title} className="relative rounded-2xl border border-slate-200/80 bg-white/85 px-3 py-2.5">
+                  {index < JOURNEY_STEPS.length - 1 ? (
+                    <span className="pointer-events-none absolute left-[22px] top-[36px] h-6 w-px bg-gradient-to-b from-slate-300 to-slate-200" />
+                  ) : null}
+                  <div className="flex items-start gap-2.5">
+                    <span className={`inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border ${step.tone}`}>
+                      <step.icon className="h-4 w-4" />
+                    </span>
+                    <div className="min-w-0">
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-orange-700">
+                        Paso {index + 1}
+                      </p>
+                      <p className="mt-0.5 text-sm font-semibold text-slate-800">{step.title}</p>
+                      <p className="mt-0.5 text-xs leading-relaxed text-slate-600">{step.description}</p>
+                    </div>
+                  </div>
                 </li>
               ))}
             </ol>
