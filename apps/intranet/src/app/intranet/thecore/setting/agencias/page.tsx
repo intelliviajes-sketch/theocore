@@ -45,6 +45,8 @@ function AgencyFormModal({
     scope: "global" | "agency" | null;
     owner_agency_id: string | null;
     created_for_agency_id: string | null;
+    execution_layer: string | null;
+    brain_category: string | null;
   }>;
   assignedBrainIds: string[];
   assignedBrainDetails: AgencyBrainAssignment[];
@@ -87,6 +89,13 @@ function AgencyFormModal({
 
   const availableBrainIds = useMemo(
     () => new Set(availableBrains.map((brain) => brain.id)),
+    [availableBrains],
+  );
+  const availableMascotBrains = useMemo(
+    () =>
+      availableBrains.filter(
+        (brain) => brain.active && brain.execution_layer === "frontend" && brain.brain_category === "traveler",
+      ),
     [availableBrains],
   );
 
@@ -175,12 +184,12 @@ function AgencyFormModal({
       return;
     }
 
-    const selectedMascotBrain = availableBrains.find((brain) => brain.id === mascotBrainId) || null;
+    const selectedMascotBrain = availableMascotBrains.find((brain) => brain.id === mascotBrainId) || null;
     setMascotBrainLogoUrl(selectedMascotBrain?.logo_url ?? null);
     if (selectedMascotBrain && mascotName.trim().length === 0) {
       setMascotName(selectedMascotBrain.name);
     }
-  }, [availableBrains, mascotBrainId, mascotName, open]);
+  }, [availableMascotBrains, mascotBrainId, mascotName, open]);
 
   const validation = useMemo(() => {
     const base = validateAgencyForm({
@@ -336,7 +345,7 @@ function AgencyFormModal({
                 className={inputClass()}
               >
                 <option value="">Sin mascota</option>
-                {availableBrains.map((brain) => (
+                {availableMascotBrains.map((brain) => (
                   <option key={brain.id} value={brain.id}>
                     {brain.name}
                   </option>

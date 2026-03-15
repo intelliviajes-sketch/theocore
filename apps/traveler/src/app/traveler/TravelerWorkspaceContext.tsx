@@ -137,7 +137,10 @@ type TravelerWorkspaceContextValue = {
   appendAssistantChunk: (chunk: string) => void;
   clearChatMessages: () => void;
   reloadChatSessions: () => Promise<void>;
-  createNewChatSession: (brainId?: string | null) => Promise<string | null>;
+  createNewChatSession: (
+    brainId?: string | null,
+    options?: { resetMessages?: boolean },
+  ) => Promise<string | null>;
   selectChatSession: (sessionId: string) => Promise<void>;
   ensureChatSession: (brainId?: string | null) => Promise<string | null>;
   persistChatMessage: (message: ChatMessage, brainId?: string | null) => Promise<void>;
@@ -419,12 +422,18 @@ export function TravelerWorkspaceProvider({
     }
   }
 
-  async function createNewChatSession(brainId?: string | null) {
+  async function createNewChatSession(
+    brainId?: string | null,
+    options?: { resetMessages?: boolean },
+  ) {
+    const resetMessages = options?.resetMessages === true;
     if (!userId) {
       const localSessionId = createClientId("local_chat");
       chatSessionIdRef.current = localSessionId;
       setChatSessionId(localSessionId);
-      setChatMessages([]);
+      if (resetMessages) {
+        setChatMessages([]);
+      }
       setChatSessions((current) => [
         {
           id: localSessionId,
@@ -452,7 +461,9 @@ export function TravelerWorkspaceProvider({
 
       chatSessionIdRef.current = data.id;
       setChatSessionId(data.id);
-      setChatMessages([]);
+      if (resetMessages) {
+        setChatMessages([]);
+      }
       setChatSessions((current) => [
         {
           id: data.id,
@@ -470,7 +481,9 @@ export function TravelerWorkspaceProvider({
       );
       chatSessionIdRef.current = localSessionId;
       setChatSessionId(localSessionId);
-      setChatMessages([]);
+      if (resetMessages) {
+        setChatMessages([]);
+      }
       setChatSessions((current) => [
         {
           id: localSessionId,

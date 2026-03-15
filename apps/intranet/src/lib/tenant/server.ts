@@ -149,7 +149,7 @@ async function loadMarketConfig(agencyId: string, preferredCountryCode: string |
     .eq("active", true)
     .maybeSingle();
 
-  if (!error || market) {
+  if (!error && market) {
     return market as MarketRow | null;
   }
 

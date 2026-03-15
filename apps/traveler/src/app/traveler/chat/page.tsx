@@ -18,9 +18,9 @@ import { normalizeAssistantOutput } from "@/lib/traveler/assistant-output";
 import { trackTravelerEvent } from "@/lib/traveler/tracking";
 
 const LANDING_PROMPT_STORAGE_KEY = "traveler:landingPrompt";
-// TODO(landing-handoff): mantener trazabilidad de este flujo.
-// Si vuelve el bug de "Procesando..." desde /traveler, revisar primero:
-// `landingPrompt` -> effect de auto-send -> `sendMessage`.
+// Landing handoff flow:
+// /traveler -> /traveler/chat?from=landing&q=...
+// The first prompt must auto-send exactly once and preserve conversation state.
 
 function pickBestChatBrain(brains: Brain[], preferredBrainId: string | null | undefined) {
   if (preferredBrainId) {
@@ -383,7 +383,7 @@ export default function TravelerChatPage() {
       source: "chat-cards",
     });
     await sendMessage(
-      `Quiero esta opciÃ³n: ${offer.title}. AjÃºstala para mi madre y para una estancia de 10 dÃ­as en Madrid.`,
+      `Quiero esta opcion: ${offer.title}. Ajustala para mi madre y para una estancia de 10 dias en Madrid.`,
     );
   }
 
@@ -433,17 +433,9 @@ export default function TravelerChatPage() {
   useEffect(() => {
     const query = landingPrompt;
     const run = async () => {
-      // TODO(landing-handoff): Caso pendiente en producción (collaviajes.com):
-      // cuando la navegación llega con /traveler/chat?from=landing&q=..., en algunos escenarios
-      // queda en "Procesando tu mensaje..." y no llega la primera respuesta.
-      // Estado actual:
-      // - flujo normal desde input interno de /chat funciona correctamente.
-      // - flujo auto-send desde landing falla de forma intermitente según tenant/contexto.
-      // Próximo enfoque sugerido:
-      // 1) instrumentar métricas/telemetría por pasos (detect prompt, create session, push user msg, fetch start, first chunk).
-      // 2) agregar mecanismo idempotente de auto-send con reintento controlado por timeout.
-      // 3) considerar endpoint dedicado de handoff server-side para evitar dependencias de estado cliente.
       if (!query || initialQueryRef.current || !isLandingPromptFlow) return;
+      if (sending) return;
+      if (tenant.kind === "agency" && !brainsLoaded) return;
       initialQueryRef.current = true;
       setInput("");
       setPendingChatPrompt(null);
@@ -455,7 +447,7 @@ export default function TravelerChatPage() {
 
     void run();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [landingPrompt, activeBrain, isLandingPromptFlow, setPendingChatPrompt]);
+  }, [brainsLoaded, landingPrompt, sending, tenant.kind, activeBrain, isLandingPromptFlow, setPendingChatPrompt]);
 
   useEffect(() => {
     let cancelled = false;

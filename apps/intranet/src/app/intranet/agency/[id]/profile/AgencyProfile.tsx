@@ -22,6 +22,17 @@ type Agency = {
   created_at: string;
 };
 
+type AgencyBranding = {
+  logo_url: string | null;
+  hero_config: Record<string, unknown> | null;
+};
+
+type MascotBrainOption = {
+  id: string;
+  name: string;
+  logo_url: string | null;
+};
+
 type AgencyProfileForm = {
   commercial_name: string;
   legal_name: string;
@@ -33,24 +44,54 @@ type AgencyProfileForm = {
   tax_id?: string;
   bank_information?: string;
   active: string;
+  logo_url?: string;
+  mascot_brain_id?: string;
+  mascot_name?: string;
 };
 
 function inputClass(hasError?: boolean) {
   return `input ${hasError ? 'border-rose-400 bg-rose-50 text-rose-900 focus:border-rose-500' : ''}`.trim();
 }
 
-export default function AgencyProfile({ agency }: { agency: Agency }) {
+function asJsonObject(value: unknown) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
+  return value as Record<string, unknown>;
+}
+
+function readHeroString(value: unknown, key: string) {
+  const record = asJsonObject(value);
+  const raw = record[key];
+  return typeof raw === 'string' ? raw.trim() : '';
+}
+
+export default function AgencyProfile({
+  agency,
+  branding,
+  mascotBrainOptions,
+}: {
+  agency: Agency;
+  branding: AgencyBranding | null;
+  mascotBrainOptions: MascotBrainOption[];
+}) {
   const {
     register,
     handleSubmit,
     reset,
     setError,
     clearErrors,
+    watch,
     formState: { errors },
   } = useForm<AgencyProfileForm>();
   const [saving, setSaving] = useState(false);
   const router = useRouter();
   const { success, error } = useToast();
+
+  const currentHeroConfig = useMemo(() => asJsonObject(branding?.hero_config), [branding?.hero_config]);
+  const mascotBrainId = watch('mascot_brain_id') || '';
+  const selectedMascotBrain = useMemo(
+    () => mascotBrainOptions.find((brain) => brain.id === mascotBrainId) || null,
+    [mascotBrainId, mascotBrainOptions],
+  );
 
   useEffect(() => {
     if (agency) {
@@ -67,9 +108,12 @@ export default function AgencyProfile({ agency }: { agency: Agency }) {
         bank_information: agency.bank_information
           ? JSON.stringify(agency.bank_information, null, 2)
           : '',
+        logo_url: branding?.logo_url || '',
+        mascot_brain_id: readHeroString(branding?.hero_config, 'mascot_brain_id'),
+        mascot_name: readHeroString(branding?.hero_config, 'mascot_name'),
       });
     }
-  }, [agency, reset]);
+  }, [agency, branding, reset]);
 
   const createdAtLabel = useMemo(() => new Date(agency.created_at).toLocaleString(), [agency.created_at]);
 
@@ -128,36 +172,74 @@ export default function AgencyProfile({ agency }: { agency: Agency }) {
       .update(payload)
       .eq('id', agency.id);
 
-    if (!saveError) {
-      success('Perfil de agencia actualizado.');
-      router.refresh();
-    } else {
+    if (saveError) {
       error('No se pudo guardar el perfil de la agencia.');
+      setSaving(false);
+      return;
     }
 
+    const logoUrl = data.logo_url?.trim() || null;
+    const nextMascotBrainId = data.mascot_brain_id?.trim() || '';
+    const nextMascotName = data.mascot_name?.trim() || null;
+    const nextHeroConfig = { ...currentHeroConfig };
+
+    if (nextMascotBrainId) {
+      nextHeroConfig.mascot_brain_id = nextMascotBrainId;
+    } else {
+      delete nextHeroConfig.mascot_brain_id;
+    }
+
+    if (nextMascotName) {
+      nextHeroConfig.mascot_name = nextMascotName;
+    } else {
+      delete nextHeroConfig.mascot_name;
+    }
+
+    const selectedMascotBrainOnSave =
+      mascotBrainOptions.find((brain) => brain.id === nextMascotBrainId) || null;
+    const mascotLogo = selectedMascotBrainOnSave?.logo_url || null;
+    if (nextMascotBrainId && mascotLogo) {
+      nextHeroConfig.mascot_brain_logo_url = mascotLogo;
+    } else {
+      delete nextHeroConfig.mascot_brain_logo_url;
+    }
+
+    const { error: brandingError } = await supabaseBrowser
+      .from('agency_branding')
+      .upsert(
+        {
+          agency_id: agency.id,
+          logo_url: logoUrl,
+          hero_config: nextHeroConfig,
+        },
+        { onConflict: 'agency_id' },
+      );
+
+    if (brandingError) {
+      error('No se pudo guardar branding de la agencia.');
+      setSaving(false);
+      return;
+    }
+
+    success('Perfil de agencia actualizado.');
+    router.refresh();
     setSaving(false);
   };
 
   return (
     <div className="min-h-screen bg-slate-50 py-10">
-      <div className="max-w-6xl mx-auto px-6">
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-200">
-          <div className="px-8 py-6 border-b border-slate-200">
-            <h1 className="text-2xl font-semibold text-slate-800">
-              Perfil de la Agencia
-            </h1>
-            <p className="text-sm text-slate-500 mt-1">
-              Informacion comercial, legal y operativa
-            </p>
+      <div className="mx-auto max-w-6xl px-6">
+        <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <div className="border-b border-slate-200 px-8 py-6">
+            <h1 className="text-2xl font-semibold text-slate-800">Perfil de la Agencia</h1>
+            <p className="mt-1 text-sm text-slate-500">Informacion comercial, legal y operativa</p>
           </div>
 
           <form
             onSubmit={handleSubmit(onSubmit)}
-            className="px-8 py-8 grid grid-cols-1 md:grid-cols-2 gap-6"
+            className="grid grid-cols-1 gap-6 px-8 py-8 md:grid-cols-2"
           >
-            <Readonly label="ID">
-              {agency.id}
-            </Readonly>
+            <Readonly label="ID">{agency.id}</Readonly>
 
             <Field label="Estado">
               <select {...register('active')} className="input">
@@ -190,12 +272,62 @@ export default function AgencyProfile({ agency }: { agency: Agency }) {
               <input type="email" {...register('email_emergency')} className={inputClass(Boolean(errors.email_emergency))} />
             </Field>
 
-            <Field label="Direccion">
-              <input {...register('address')} className="input" />
+            <Field label="URL logo agencia">
+              <input
+                {...register('logo_url')}
+                placeholder="https://..."
+                className="input"
+              />
+            </Field>
+
+            <Field label="Mascota-brain">
+              <select {...register('mascot_brain_id')} className="input">
+                <option value="">Sin mascota</option>
+                {mascotBrainOptions.map((brain) => (
+                  <option key={brain.id} value={brain.id}>
+                    {brain.name}
+                  </option>
+                ))}
+              </select>
+            </Field>
+
+            <Field label="Nombre de la mascota">
+              <input
+                {...register('mascot_name')}
+                placeholder="Ej: IVI"
+                className="input"
+              />
             </Field>
 
             <Field label="Tax ID / NIF">
               <input {...register('tax_id')} className="input" />
+            </Field>
+
+            {mascotBrainId ? (
+              <div className="md:col-span-2 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">Mascota configurada</p>
+                <div className="mt-3 flex items-center gap-3">
+                  {selectedMascotBrain?.logo_url ? (
+                    <img
+                      src={selectedMascotBrain.logo_url}
+                      alt={selectedMascotBrain.name}
+                      className="h-10 w-10 rounded-xl border border-slate-200 object-cover"
+                    />
+                  ) : (
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-500">
+                      AI
+                    </div>
+                  )}
+                  <div>
+                    <p className="text-sm font-medium text-slate-900">{watch('mascot_name') || selectedMascotBrain?.name || 'Mascota'}</p>
+                    <p className="text-xs text-slate-500">Brain ID: {mascotBrainId}</p>
+                  </div>
+                </div>
+              </div>
+            ) : null}
+
+            <Field label="Direccion">
+              <input {...register('address')} className="input" />
             </Field>
 
             <div className="md:col-span-2">
@@ -208,15 +340,13 @@ export default function AgencyProfile({ agency }: { agency: Agency }) {
               </Field>
             </div>
 
-            <Readonly label="Creado el">
-              {createdAtLabel}
-            </Readonly>
+            <Readonly label="Creado el">{createdAtLabel}</Readonly>
 
-            <div className="md:col-span-2 flex justify-end pt-6 border-t border-slate-200">
+            <div className="md:col-span-2 flex justify-end border-t border-slate-200 pt-6">
               <button
                 type="submit"
                 disabled={saving}
-                className="inline-flex items-center gap-2 bg-blue-600 text-white px-6 py-2.5 rounded-lg text-sm font-medium hover:bg-blue-700 transition disabled:opacity-50"
+                className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-6 py-2.5 text-sm font-medium text-white transition hover:bg-blue-700 disabled:opacity-50"
               >
                 {saving ? 'Guardando...' : 'Guardar cambios'}
               </button>
@@ -242,7 +372,7 @@ function Readonly({ label, children }: { label: string; children: React.ReactNod
   return (
     <div>
       <label className="label">{label}</label>
-      <div className="input bg-slate-100 text-slate-500 cursor-not-allowed">
+      <div className="input cursor-not-allowed bg-slate-100 text-slate-500">
         {children}
       </div>
     </div>
