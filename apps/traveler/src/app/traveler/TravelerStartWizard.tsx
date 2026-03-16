@@ -32,37 +32,37 @@ type StartPlanningPayload = {
 const JOURNEY_STEPS = [
   {
     title: "Idea inicial",
-    description: "Escribe tu objetivo de viaje con el mayor contexto posible.",
+    line: "Define objetivo y estilo del viaje.",
     icon: Lightbulb,
     tone: "text-amber-600 bg-amber-100 border-amber-200",
   },
   {
     title: "Destino y fechas",
-    description: "Definimos ciudad, temporada y duracion para enfocar opciones.",
+    line: "Fijamos destino, temporada y duracion.",
     icon: CalendarDays,
     tone: "text-sky-600 bg-sky-100 border-sky-200",
   },
   {
     title: "Tipo de producto",
-    description: "Selecciona paquete, hotel, vuelo o excursion para activar su formulario.",
+    line: "Seleccionas producto y se activa su formulario.",
     icon: BriefcaseBusiness,
     tone: "text-indigo-600 bg-indigo-100 border-indigo-200",
   },
   {
     title: "Plan personalizado",
-    description: "La IA propone alternativas adaptadas a presupuesto y estilo.",
+    line: "IVI genera opciones segun tu presupuesto.",
     icon: Wand2,
     tone: "text-violet-600 bg-violet-100 border-violet-200",
   },
   {
     title: "Ajustes finos",
-    description: "Refinamos detalles por preferencias, acompanantes y ritmo.",
+    line: "Refinamos preferencias, acompanantes y ritmo.",
     icon: SlidersHorizontal,
     tone: "text-teal-600 bg-teal-100 border-teal-200",
   },
   {
     title: "Cotizacion final",
-    description: "Consolidamos la propuesta lista para pasar a booking.",
+    line: "Cerramos propuesta lista para reservar.",
     icon: ReceiptText,
     tone: "text-emerald-600 bg-emerald-100 border-emerald-200",
   },
@@ -284,22 +284,20 @@ export default function TravelerStartWizard({
               <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">Flujo guiado</p>
               <p className="rounded-full bg-slate-900 px-2 py-0.5 text-[10px] font-semibold text-white">6/6</p>
             </div>
-            <ol className="relative z-10 mt-4 space-y-2.5">
+            <ol className="relative z-10 mt-4 space-y-2">
               {JOURNEY_STEPS.map((step, index) => (
-                <li key={step.title} className="relative rounded-2xl border border-slate-200/80 bg-white/85 px-3 py-2.5">
+                <li key={step.title} className="relative rounded-2xl border border-slate-200/80 bg-white/85 px-3 py-2">
                   {index < JOURNEY_STEPS.length - 1 ? (
-                    <span className="pointer-events-none absolute left-[22px] top-[36px] h-6 w-px bg-gradient-to-b from-slate-300 to-slate-200" />
+                    <span className="pointer-events-none absolute left-[22px] top-[34px] h-5 w-px bg-gradient-to-b from-slate-300 to-slate-200" />
                   ) : null}
                   <div className="flex items-start gap-2.5">
                     <span className={`inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border ${step.tone}`}>
                       <step.icon className="h-4 w-4" />
                     </span>
                     <div className="min-w-0">
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-orange-700">
-                        Paso {index + 1}
+                      <p className="line-clamp-1 text-xs font-medium text-slate-700">
+                        Paso {index + 1}: {step.line}
                       </p>
-                      <p className="mt-0.5 text-sm font-semibold text-slate-800">{step.title}</p>
-                      <p className="mt-0.5 text-xs leading-relaxed text-slate-600">{step.description}</p>
                     </div>
                   </div>
                 </li>

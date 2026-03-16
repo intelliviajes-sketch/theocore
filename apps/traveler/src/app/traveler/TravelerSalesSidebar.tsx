@@ -15,6 +15,7 @@ const FALLBACK_TRAVEL_VISUALS = [
   "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1200&q=80",
   "https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?auto=format&fit=crop&w=1200&q=80",
 ];
+const IMAGE_CONTEXT_BLOCKLIST = ["fruit", "food", "dish", "bean", "verdura", "vegetable", "drink", "cocktail"];
 
 type WeatherSnapshot = {
   temperature: number;
@@ -22,6 +23,12 @@ type WeatherSnapshot = {
   windSpeed: number;
   code: number;
   label: string;
+};
+
+type DestinationContext = {
+  city: string;
+  country: string | null;
+  region: string | null;
 };
 
 function parseNumber(value: unknown) {
@@ -119,6 +126,8 @@ export default function TravelerSalesSidebar({
   const { insight, journeyState, selectJourneyProduct, chatMessages } = useTravelerWorkspace();
   const [weather, setWeather] = useState<WeatherSnapshot | null>(null);
   const [weatherLoading, setWeatherLoading] = useState(false);
+  const [contextImages, setContextImages] = useState<string[]>([]);
+  const [destinationContext, setDestinationContext] = useState<DestinationContext | null>(null);
   const [failedImages, setFailedImages] = useState<Record<string, boolean>>({});
 
   const recommendedOffers = useMemo(() => {
@@ -167,14 +176,8 @@ export default function TravelerSalesSidebar({
       ...displayOffers.flatMap((offer) => [offer.coverImage, ...(offer.images || [])]),
     ]);
 
-    const destinationImages = destinationToken
-      ? [1, 2, 3].map(
-          (index) => `https://picsum.photos/seed/${encodeURIComponent(`${destinationToken}-${index}`)}/780/520`,
-        )
-      : [];
-
-    return uniqueStrings([...offerImages, ...destinationImages, ...FALLBACK_TRAVEL_VISUALS]).slice(0, 5);
-  }, [destinationToken, displayOffers, selectedOffer]);
+    return uniqueStrings([...offerImages, ...contextImages, ...FALLBACK_TRAVEL_VISUALS]).slice(0, 5);
+  }, [contextImages, displayOffers, selectedOffer]);
   const heroImage = useMemo(
     () => visualGallery.find((image) => !failedImages[image]) || null,
     [failedImages, visualGallery],
@@ -216,6 +219,8 @@ export default function TravelerSalesSidebar({
   useEffect(() => {
     if (!destinationToken) {
       setWeather(null);
+      setContextImages([]);
+      setDestinationContext(null);
       return;
     }
 
@@ -224,16 +229,64 @@ export default function TravelerSalesSidebar({
     const run = async () => {
       try {
         setWeatherLoading(true);
+        setFailedImages({});
         const geoRes = await fetch(
           `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(destinationToken)}&count=1&language=es&format=json`,
           { signal: controller.signal },
         );
         if (!geoRes.ok) throw new Error(`Geo ${geoRes.status}`);
         const geoPayload = (await geoRes.json()) as {
-          results?: Array<{ latitude: number; longitude: number }>;
+          results?: Array<{
+            latitude: number;
+            longitude: number;
+            name?: string;
+            country?: string;
+            admin1?: string;
+          }>;
         };
         const geo = geoPayload.results?.[0];
         if (!geo) throw new Error("Sin coordenadas");
+        const context: DestinationContext = {
+          city: typeof geo.name === "string" && geo.name.trim().length > 0 ? geo.name.trim() : destinationToken,
+          country: typeof geo.country === "string" && geo.country.trim().length > 0 ? geo.country.trim() : null,
+          region: typeof geo.admin1 === "string" && geo.admin1.trim().length > 0 ? geo.admin1.trim() : null,
+        };
+        setDestinationContext(context);
+
+        const commonsQuery = [
+          context.city,
+          context.region || "",
+          context.country || "",
+          "city skyline tourism landmark mountain hiking travel",
+          "-fruit -food -recipe",
+        ]
+          .filter(Boolean)
+          .join(" ");
+
+        const commonsRes = await fetch(
+          `https://commons.wikimedia.org/w/api.php?action=query&format=json&origin=*&generator=search&gsrnamespace=6&gsrlimit=12&gsrsearch=${encodeURIComponent(commonsQuery)}&prop=imageinfo&iiprop=url`,
+          { signal: controller.signal },
+        );
+        if (commonsRes.ok) {
+          const commonsPayload = (await commonsRes.json()) as {
+            query?: {
+              pages?: Record<string, { title?: string; imageinfo?: Array<{ url?: string }> }>;
+            };
+          };
+          const pages = commonsPayload.query?.pages || {};
+          const images = Object.values(pages)
+            .map((page) => page.imageinfo?.[0]?.url || null)
+            .filter((url): url is string => Boolean(url))
+            .filter((url) => /\.(jpg|jpeg|png|webp)(?:\?|$)/i.test(url))
+            .filter((url) => {
+              const normalized = url.toLowerCase();
+              return !IMAGE_CONTEXT_BLOCKLIST.some((word) => normalized.includes(word));
+            })
+            .slice(0, 6);
+          setContextImages(images);
+        } else {
+          setContextImages([]);
+        }
 
         const weatherRes = await fetch(
           `https://api.open-meteo.com/v1/forecast?latitude=${geo.latitude}&longitude=${geo.longitude}&timezone=auto&current=temperature_2m,apparent_temperature,weather_code,wind_speed_10m`,
@@ -263,6 +316,8 @@ export default function TravelerSalesSidebar({
       } catch (error) {
         if (controller.signal.aborted) return;
         setWeather(null);
+        setContextImages([]);
+        setDestinationContext(null);
         console.warn("No se pudo cargar clima para destino traveler:", error);
       } finally {
         if (!controller.signal.aborted) {
@@ -310,7 +365,9 @@ export default function TravelerSalesSidebar({
             ) : null}
             <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-slate-900/55 to-transparent px-3 py-2">
               <p className="line-clamp-1 text-xs font-semibold text-white">
-                {destination || "Inspiracion de viaje personalizada"}
+                {destinationContext
+                  ? `${destinationContext.city}${destinationContext.country ? `, ${destinationContext.country}` : ""}`
+                  : destination || "Inspiracion de viaje personalizada"}
               </p>
             </div>
           </div>
