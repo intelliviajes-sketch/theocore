@@ -28,9 +28,21 @@ export default function TravelerWorkspaceLayout({
   }, [journeyState.selectedProductId, featured]);
 
   const bgImage = activeProduct?.coverImage || null;
+  const selectedDestination = activeProduct?.destination || journeyState.selectedDestination || null;
+  const stageLabel = useMemo(() => {
+    const map: Record<string, string> = {
+      explore: "Explorando",
+      design: "Disenando",
+      decide: "Decidiendo",
+      booked: "Reservado",
+      traveling: "Viajando",
+    };
+    return map[journeyState.activeStage] || "Explorando";
+  }, [journeyState.activeStage]);
+  const boardCount = journeyState.boardItems.length;
 
   return (
-    <div className="trav-page bg-[radial-gradient(980px_420px_at_92%_-8%,rgba(251,191,36,0.17),transparent_62%),radial-gradient(860px_340px_at_8%_0%,rgba(14,165,233,0.1),transparent_60%),linear-gradient(180deg,#ffffff_0%,#f8fafc_100%)] h-[100dvh] overflow-hidden flex flex-col relative transition-colors duration-500">
+    <div className="trav-page bg-[radial-gradient(980px_420px_at_92%_-8%,rgba(251,191,36,0.17),transparent_62%),radial-gradient(860px_340px_at_8%_0%,rgba(14,165,233,0.1),transparent_60%),linear-gradient(180deg,#ffffff_0%,#f8fafc_100%)] h-full min-h-0 overflow-hidden flex flex-col relative transition-colors duration-500">
       <div className="pointer-events-none absolute inset-0 z-0">
         <div className="absolute -right-24 top-12 h-64 w-64 rounded-full bg-amber-300/20 blur-3xl" />
         <div className="absolute -left-24 bottom-8 h-64 w-64 rounded-full bg-sky-300/20 blur-3xl" />
@@ -55,6 +67,28 @@ export default function TravelerWorkspaceLayout({
 
       <div className="trav-container flex-1 flex flex-col h-full overflow-hidden relative z-10">
         {topBar ? <div className="mb-3 shrink-0">{topBar}</div> : null}
+        {hasRightPanel ? (
+          <div className="mb-2 lg:hidden">
+            <button
+              onClick={() => setIsMobilePanelOpen(true)}
+              className="trav-glass-soft flex w-full items-center justify-between rounded-2xl border border-slate-200/80 px-3 py-2.5 text-left"
+              aria-label="Abrir resumen del viaje"
+            >
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-500">Resumen en vivo</p>
+                <p className="text-sm font-semibold text-slate-900">
+                  {selectedDestination || "Aun sin destino definido"}
+                </p>
+                <p className="text-[11px] text-slate-600">
+                  {stageLabel} · {boardCount} en pizarron
+                </p>
+              </div>
+              <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-r from-amber-400 to-amber-500">
+                <Layers className="h-4 w-4 text-slate-900" />
+              </span>
+            </button>
+          </div>
+        ) : null}
         <div className="trav-grid trav-layout-divider flex-1 overflow-hidden transition-all duration-500 ease-in-out">
           <section className="trav-reveal trav-layout-pane h-full overflow-hidden relative transition-all duration-500 min-w-0">
             {left}
@@ -67,22 +101,13 @@ export default function TravelerWorkspaceLayout({
           ) : null}
         </div>
 
-        {hasRightPanel ? (
-          <button
-            onClick={() => setIsMobilePanelOpen(true)}
-            className="fixed bottom-6 right-6 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-r from-amber-400 to-amber-500 shadow-xl shadow-amber-500/30 transition-transform active:scale-95 lg:hidden"
-            aria-label="Abrir Panel de Control"
-          >
-            <Layers className="h-6 w-6 text-slate-900" />
-          </button>
-        ) : null}
       </div>
 
       {hasRightPanel ? (
         <BottomSheetModal
           isOpen={isMobilePanelOpen}
           onClose={() => setIsMobilePanelOpen(false)}
-          title="Workspace y Cotizacion"
+          title="Resumen del viaje"
         >
           {right}
         </BottomSheetModal>

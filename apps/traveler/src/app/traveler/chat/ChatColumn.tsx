@@ -543,7 +543,7 @@ export default function ChatColumn({
     : "";
 
   return (
-    <div className="trav-panel trav-glass trav-reveal flex h-[clamp(320px,calc(100dvh-16rem),820px)] w-full flex-col overflow-hidden rounded-3xl transition-shadow duration-300 focus-within:shadow-[0_22px_48px_-38px_rgba(15,23,42,0.38)] sm:h-[clamp(420px,calc(100dvh-14.5rem),860px)] lg:h-[calc(100dvh-12rem)]">
+    <div className="trav-panel trav-glass trav-reveal flex h-full min-h-0 w-full flex-col overflow-hidden rounded-3xl transition-shadow duration-300 focus-within:shadow-[0_22px_48px_-38px_rgba(15,23,42,0.38)]">
       <div className="relative border-b border-slate-200/80 bg-white/70 px-4 py-3 backdrop-blur-md sm:px-5">
         <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-amber-200 to-transparent" />
         <div className="flex items-center justify-between gap-3">
@@ -557,7 +557,7 @@ export default function ChatColumn({
           </div>
         </div>
       </div>
-      <div ref={centerRef} className="relative flex-1 space-y-3 overflow-auto overscroll-contain p-3 pb-32 sm:p-5 sm:pb-36 scroll-smooth">
+      <div ref={centerRef} className="relative flex-1 min-h-0 space-y-3 overflow-auto overscroll-contain p-3 sm:p-5 scroll-smooth">
         {messages.length === 0 ? (
           emptyStateMessage ? (
             <div className="grid h-full place-items-start pt-2">
@@ -711,36 +711,14 @@ export default function ChatColumn({
         )}
       </div>
 
-      {/* STICKY CHAT INPUT */}
-      <div className="absolute bottom-4 left-4 right-4 z-20 flex flex-col sm:bottom-6 sm:left-6 sm:right-6">
-        {messages.length === 0 ? null : (
-          !sending && (
-          <div className="mb-3 flex w-full overflow-x-auto scrollbar-hide space-x-2 px-1">
-            {[
-              "Hacemos algo mas romantico?",
-              "Busca algo economico",
-              "Que clima hace alli?",
-              "Muestrame el itinerario"
-            ].map((chip) => (
-              <button
-                key={chip}
-                onClick={() => setInput(chip)}
-                className="whitespace-nowrap rounded-full border border-white/60 bg-white/70 px-4 py-2 text-[13px] font-medium text-slate-700 shadow-sm backdrop-blur-md transition hover:bg-white"
-              >
-                {chip}
-              </button>
-            ))}
-          </div>
-          )
-        )}
-        
+      <div className="border-t border-slate-200/70 bg-white/60 px-3 py-3 backdrop-blur-md sm:px-5 sm:py-4">
         <div className="trav-glass-soft rounded-[2rem] p-1.5 pr-2 shadow-[0_8px_30px_rgb(0,0,0,0.08)] ring-1 ring-slate-200/50">
           <form onSubmit={onSend} className="flex items-center gap-2">
             <input
               value={input}
               onChange={(event) => setInput(event.target.value)}
               placeholder={user.language === "en" ? "Type your message..." : "Escribe tu mensaje..."}
-              className="flex-1 bg-transparent px-5 py-3.5 text-[15px] outline-none placeholder:text-slate-400 text-slate-800"
+              className="flex-1 bg-transparent px-5 py-4 text-[15px] outline-none placeholder:text-slate-400 text-slate-800"
             />
             <button
               type="submit"

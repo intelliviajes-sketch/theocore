@@ -1,8 +1,8 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Compass, Globe2, MapPinned } from "lucide-react";
+import { CloudSun, Compass, Globe2, MapPinned, Sparkles, Thermometer, Wind } from "lucide-react";
 import { useDroppable } from "@dnd-kit/core";
 import { cn } from "@/lib/utils";
 import type { CatalogProduct } from "@/lib/catalog/travelers";
@@ -10,6 +10,14 @@ import { useTravelerWorkspace } from "./TravelerWorkspaceContext";
 import { trackTravelerEvent } from "@/lib/traveler/tracking";
 
 const PRICE_KEYS = ["price", "precio", "amount", "total", "base_price", "price_from"];
+
+type WeatherSnapshot = {
+  temperature: number;
+  feelsLike: number;
+  windSpeed: number;
+  code: number;
+  label: string;
+};
 
 function parseNumber(value: unknown) {
   if (typeof value === "number" && Number.isFinite(value)) return value;
@@ -52,6 +60,43 @@ function sourceBadge(product: CatalogProduct) {
   return { label: "Patrocinado", classes: "bg-slate-100 text-slate-700 ring-1 ring-slate-200" };
 }
 
+function stageLabel(stage: string) {
+  const map: Record<string, string> = {
+    explore: "Explorar",
+    design: "Disenar",
+    decide: "Decidir",
+    booked: "Reservado",
+    traveling: "Viajando",
+  };
+  return map[stage] || "Explorar";
+}
+
+function weatherCodeToLabel(code: number) {
+  if ([0, 1].includes(code)) return "Despejado";
+  if ([2, 3].includes(code)) return "Parcialmente nublado";
+  if ([45, 48].includes(code)) return "Niebla";
+  if ([51, 53, 55, 56, 57].includes(code)) return "Llovizna";
+  if ([61, 63, 65, 80, 81, 82].includes(code)) return "Lluvia";
+  if ([66, 67].includes(code)) return "Lluvia helada";
+  if ([71, 73, 75, 77, 85, 86].includes(code)) return "Nieve";
+  if ([95, 96, 99].includes(code)) return "Tormenta";
+  return "Variable";
+}
+
+function uniqueStrings(values: Array<string | null | undefined>) {
+  const seen = new Set<string>();
+  const output: string[] = [];
+  for (const value of values) {
+    if (!value) continue;
+    const normalized = value.trim();
+    if (!normalized) continue;
+    if (seen.has(normalized)) continue;
+    seen.add(normalized);
+    output.push(normalized);
+  }
+  return output;
+}
+
 export default function TravelerSalesSidebar({
   mode,
   offers,
@@ -66,7 +111,9 @@ export default function TravelerSalesSidebar({
   hideRecommendations?: boolean;
 }) {
   const router = useRouter();
-  const { insight, journeyState, selectJourneyProduct } = useTravelerWorkspace();
+  const { insight, journeyState, selectJourneyProduct, chatMessages } = useTravelerWorkspace();
+  const [weather, setWeather] = useState<WeatherSnapshot | null>(null);
+  const [weatherLoading, setWeatherLoading] = useState(false);
 
   const recommendedOffers = useMemo(() => {
     if (hideRecommendations) return [] as CatalogProduct[];
@@ -89,11 +136,135 @@ export default function TravelerSalesSidebar({
     [journeyState.boardItems, recommendedOffers],
   );
 
-  const destination = selectedOffer?.destination || null;
+  const destination = selectedOffer?.destination || journeyState.selectedDestination || null;
+  const destinationToken = useMemo(() => {
+    if (!destination) return null;
+    return destination.split(",")[0]?.trim() || destination;
+  }, [destination]);
   const mapUrl = destination ? `https://www.google.com/maps?q=${encodeURIComponent(destination)}` : null;
   const mapEmbedUrl = destination ? `${mapUrl}&output=embed` : null;
 
+  const intentMeta = useMemo(() => {
+    if (insight.intent === "high") {
+      return { label: "Alta intencion", classes: "bg-emerald-100 text-emerald-700" };
+    }
+    if (insight.intent === "medium") {
+      return { label: "Intencion media", classes: "bg-amber-100 text-amber-700" };
+    }
+    return { label: "Descubrimiento", classes: "bg-slate-100 text-slate-600" };
+  }, [insight.intent]);
+
+  const visualGallery = useMemo(() => {
+    const offerImages = uniqueStrings([
+      selectedOffer?.coverImage,
+      ...(selectedOffer?.images || []),
+      ...displayOffers.flatMap((offer) => [offer.coverImage, ...(offer.images || [])]),
+    ]);
+
+    const destinationImages = destinationToken
+      ? [1, 2, 3].map(
+          (index) =>
+            `https://source.unsplash.com/featured/780x520/?${encodeURIComponent(`${destinationToken} city travel`)}` +
+            `&sig=${index}`,
+        )
+      : [];
+
+    return uniqueStrings([...offerImages, ...destinationImages]).slice(0, 5);
+  }, [destinationToken, displayOffers, selectedOffer]);
+
+  const interestTags = useMemo(() => {
+    const raw = uniqueStrings([
+      ...(selectedOffer?.tags || []),
+      ...displayOffers.flatMap((offer) => offer.tags || []),
+    ]);
+
+    if (raw.length > 0) return raw.slice(0, 8);
+
+    if (journeyState.activeStage === "decide") {
+      return ["Presupuesto", "Condiciones", "Fechas", "Confirmacion"];
+    }
+    if (journeyState.activeStage === "design") {
+      return ["Alojamientos", "Experiencias", "Traslados", "Ritmo"];
+    }
+    return ["Inspiracion", "Destinos", "Ideas", "Estilo de viaje"];
+  }, [displayOffers, journeyState.activeStage, selectedOffer]);
+
+  const lastUserMessage = useMemo(() => {
+    for (let i = chatMessages.length - 1; i >= 0; i -= 1) {
+      const message = chatMessages[i];
+      if (message.role === "user" && message.content.trim().length > 0) {
+        return message.content.trim();
+      }
+    }
+    return null;
+  }, [chatMessages]);
+
   const { setNodeRef, isOver } = useDroppable({ id: "board-droppable" });
+
+  useEffect(() => {
+    if (!destinationToken) {
+      setWeather(null);
+      return;
+    }
+
+    const controller = new AbortController();
+
+    const run = async () => {
+      try {
+        setWeatherLoading(true);
+        const geoRes = await fetch(
+          `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(destinationToken)}&count=1&language=es&format=json`,
+          { signal: controller.signal },
+        );
+        if (!geoRes.ok) throw new Error(`Geo ${geoRes.status}`);
+        const geoPayload = (await geoRes.json()) as {
+          results?: Array<{ latitude: number; longitude: number }>;
+        };
+        const geo = geoPayload.results?.[0];
+        if (!geo) throw new Error("Sin coordenadas");
+
+        const weatherRes = await fetch(
+          `https://api.open-meteo.com/v1/forecast?latitude=${geo.latitude}&longitude=${geo.longitude}&timezone=auto&current=temperature_2m,apparent_temperature,weather_code,wind_speed_10m`,
+          { signal: controller.signal },
+        );
+        if (!weatherRes.ok) throw new Error(`Weather ${weatherRes.status}`);
+        const weatherPayload = (await weatherRes.json()) as {
+          current?: {
+            temperature_2m?: number;
+            apparent_temperature?: number;
+            weather_code?: number;
+            wind_speed_10m?: number;
+          };
+        };
+
+        const current = weatherPayload.current;
+        if (!current) throw new Error("Sin datos actuales");
+
+        const code = Math.round(current.weather_code ?? 0);
+        setWeather({
+          temperature: Math.round(current.temperature_2m ?? 0),
+          feelsLike: Math.round(current.apparent_temperature ?? 0),
+          windSpeed: Math.round(current.wind_speed_10m ?? 0),
+          code,
+          label: weatherCodeToLabel(code),
+        });
+      } catch (error) {
+        if (controller.signal.aborted) return;
+        setWeather(null);
+        console.warn("No se pudo cargar clima para destino traveler:", error);
+      } finally {
+        if (!controller.signal.aborted) {
+          setWeatherLoading(false);
+        }
+      }
+    };
+
+    void run();
+
+    return () => {
+      controller.abort();
+    };
+  }, [destinationToken]);
 
   function handleFocusOffer(offer: CatalogProduct) {
     selectJourneyProduct(offer);
@@ -107,19 +278,110 @@ export default function TravelerSalesSidebar({
 
   return (
     <div className="trav-reveal overflow-hidden border border-slate-200/70 bg-white/70 backdrop-blur-sm">
-      <section className="overflow-hidden px-4 py-3">
-        <div className="mb-4 flex items-center justify-between gap-2">
+      <section className="px-4 py-3">
+        <div className="mb-3 flex items-center justify-between gap-2">
+          <p className="text-xs font-bold uppercase tracking-wider text-slate-500">Resumen en vivo</p>
+          <Sparkles className="h-4 w-4 text-amber-500" />
+        </div>
+
+        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white/90">
+          {visualGallery[0] ? (
+            <div className="h-28 w-full overflow-hidden">
+              <img src={visualGallery[0]} alt={destination || "Destino sugerido"} className="h-full w-full object-cover" />
+            </div>
+          ) : null}
+          <div className="p-3">
+            <p className="line-clamp-1 text-sm font-semibold text-slate-900">
+              {destination || "Personalizando tu viaje"}
+            </p>
+            <p className="mt-1 text-xs text-slate-600">{insight.summary}</p>
+            {lastUserMessage ? (
+              <p className="mt-2 line-clamp-2 text-[11px] text-slate-500">
+                Ultimo pedido: "{lastUserMessage}"
+              </p>
+            ) : null}
+            <div className="mt-3 flex flex-wrap gap-1.5">
+              <span className="rounded-full bg-slate-100 px-2 py-1 text-[10px] font-semibold text-slate-600">
+                Etapa: {stageLabel(journeyState.activeStage)}
+              </span>
+              <span className={cn("rounded-full px-2 py-1 text-[10px] font-semibold", intentMeta.classes)}>
+                {intentMeta.label}
+              </span>
+              <span className="rounded-full bg-blue-100 px-2 py-1 text-[10px] font-semibold text-blue-700">
+                Confianza {Math.round(insight.confidence * 100)}%
+              </span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="border-t border-slate-200/70 px-4 py-3">
+        <div className="mb-3 flex items-center justify-between gap-2">
           <p className="text-xs font-bold uppercase tracking-wider text-slate-500">Destino actual</p>
           <MapPinned className="h-4 w-4 text-slate-400" />
         </div>
 
         {destination ? (
-          <div className="relative group">
-            <h4 className="absolute left-3 top-3 z-10 rounded-lg bg-white/75 px-3 py-1 text-sm font-bold text-slate-900 backdrop-blur-md">
-              {destination}
-            </h4>
-            <div className="h-48 w-full overflow-hidden rounded-2xl border border-slate-200">
-              {mapEmbedUrl ? (
+          <>
+            <div className="grid grid-cols-2 gap-2">
+              {visualGallery.slice(0, 4).map((image, index) => (
+                <div key={`${image}-${index}`} className="overflow-hidden rounded-xl border border-slate-200 bg-slate-100">
+                  <img
+                    src={image}
+                    alt={`Vista ${index + 1} de ${destination}`}
+                    className="h-20 w-full object-cover transition-transform duration-500 hover:scale-105"
+                  />
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-3 rounded-2xl border border-slate-200 bg-white/90 p-3">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">Clima actual</p>
+                <CloudSun className="h-4 w-4 text-amber-500" />
+              </div>
+
+              {weatherLoading ? (
+                <p className="mt-2 text-xs text-slate-500">Cargando clima de {destinationToken}...</p>
+              ) : weather ? (
+                <div className="mt-2 grid grid-cols-3 gap-2 text-xs text-slate-700">
+                  <div className="rounded-lg bg-slate-50 px-2 py-2">
+                    <p className="text-[10px] text-slate-500">Estado</p>
+                    <p className="mt-1 font-semibold">{weather.label}</p>
+                  </div>
+                  <div className="rounded-lg bg-slate-50 px-2 py-2">
+                    <div className="flex items-center gap-1 text-[10px] text-slate-500">
+                      <Thermometer className="h-3 w-3" />
+                      Temp
+                    </div>
+                    <p className="mt-1 font-semibold">{weather.temperature}C</p>
+                  </div>
+                  <div className="rounded-lg bg-slate-50 px-2 py-2">
+                    <div className="flex items-center gap-1 text-[10px] text-slate-500">
+                      <Wind className="h-3 w-3" />
+                      Viento
+                    </div>
+                    <p className="mt-1 font-semibold">{weather.windSpeed} km/h</p>
+                  </div>
+                </div>
+              ) : (
+                <p className="mt-2 text-xs text-slate-500">No se pudo cargar el clima en este momento.</p>
+              )}
+            </div>
+
+            <div className="mt-3 rounded-2xl border border-slate-200 bg-white/90 p-3">
+              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">Temas de interes</p>
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {interestTags.map((tag) => (
+                  <span key={tag} className="rounded-full bg-amber-50 px-2.5 py-1 text-[11px] font-medium text-amber-700">
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            {mapEmbedUrl ? (
+              <div className="mt-3 h-40 w-full overflow-hidden rounded-2xl border border-slate-200">
                 <iframe
                   title="Mapa de destino"
                   src={mapEmbedUrl}
@@ -127,26 +389,24 @@ export default function TravelerSalesSidebar({
                   loading="lazy"
                   referrerPolicy="no-referrer-when-downgrade"
                 />
-              ) : (
-                <div className="h-full w-full bg-slate-100" />
-              )}
-            </div>
+              </div>
+            ) : null}
             {mapUrl ? (
               <a
                 href={mapUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="absolute bottom-3 right-3 inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white/90 px-3 py-2 text-xs font-semibold text-slate-700 shadow-sm hover:bg-white"
+                className="mt-2 inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
               >
                 <Globe2 className="h-3.5 w-3.5" />
-                Abrir Maps
+                Abrir en Maps
               </a>
             ) : null}
-          </div>
+          </>
         ) : (
           <div className="flex h-28 items-center justify-center rounded-2xl border border-dashed border-slate-300">
             <p className="px-4 text-center text-xs font-medium text-slate-400">
-              Selecciona una oferta para fijar el destino.
+              Conversa con IVI y selecciona una oferta para construir tu guia visual del destino.
             </p>
           </div>
         )}
