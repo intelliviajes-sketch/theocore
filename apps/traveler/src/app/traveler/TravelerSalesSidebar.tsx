@@ -11,9 +11,10 @@ import { trackTravelerEvent } from "@/lib/traveler/tracking";
 
 const PRICE_KEYS = ["price", "precio", "amount", "total", "base_price", "price_from"];
 const FALLBACK_TRAVEL_VISUALS = [
-  "https://images.unsplash.com/photo-1431274172761-fca41d930114?auto=format&fit=crop&w=1200&q=80",
-  "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1200&q=80",
-  "https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?auto=format&fit=crop&w=1200&q=80",
+  // Generic travel/activity visuals (avoid iconic landmarks from unrelated cities)
+  "https://images.unsplash.com/photo-1488646953014-85cb44e25828?auto=format&fit=crop&w=1200&q=80",
+  "https://images.unsplash.com/photo-1521334884684-d80222895322?auto=format&fit=crop&w=1200&q=80",
+  "https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?auto=format&fit=crop&w=1200&q=80",
 ];
 const IMAGE_CONTEXT_BLOCKLIST = ["fruit", "food", "dish", "bean", "verdura", "vegetable", "drink", "cocktail"];
 
@@ -107,6 +108,17 @@ function uniqueStrings(values: Array<string | null | undefined>) {
     output.push(normalized);
   }
   return output;
+}
+
+function normalizeSearchToken(value: string | null | undefined) {
+  if (!value) return "";
+  return value
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9\s-]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 export default function TravelerSalesSidebar({
@@ -252,6 +264,9 @@ export default function TravelerSalesSidebar({
           region: typeof geo.admin1 === "string" && geo.admin1.trim().length > 0 ? geo.admin1.trim() : null,
         };
         setDestinationContext(context);
+        const cityToken = normalizeSearchToken(context.city);
+        const countryToken = normalizeSearchToken(context.country);
+        const regionToken = normalizeSearchToken(context.region);
 
         const commonsQuery = [
           context.city,
@@ -275,13 +290,28 @@ export default function TravelerSalesSidebar({
           };
           const pages = commonsPayload.query?.pages || {};
           const images = Object.values(pages)
-            .map((page) => page.imageinfo?.[0]?.url || null)
-            .filter((url): url is string => Boolean(url))
-            .filter((url) => /\.(jpg|jpeg|png|webp)(?:\?|$)/i.test(url))
-            .filter((url) => {
-              const normalized = url.toLowerCase();
-              return !IMAGE_CONTEXT_BLOCKLIST.some((word) => normalized.includes(word));
+            .map((page) => ({
+              url: page.imageinfo?.[0]?.url || null,
+              title: page.title || "",
+            }))
+            .filter((item): item is { url: string; title: string } => Boolean(item.url))
+            .filter((item) => /\.(jpg|jpeg|png|webp)(?:\?|$)/i.test(item.url))
+            .filter((item) => {
+              const normalizedTitle = normalizeSearchToken(item.title);
+              const normalizedUrl = item.url.toLowerCase();
+              const isBlocked = IMAGE_CONTEXT_BLOCKLIST.some(
+                (word) => normalizedTitle.includes(word) || normalizedUrl.includes(word),
+              );
+              if (isBlocked) return false;
+
+              // Require explicit context match to reduce unrelated landmarks (e.g. Eiffel for Lima).
+              const matchesContext =
+                (cityToken && normalizedTitle.includes(cityToken)) ||
+                (countryToken && normalizedTitle.includes(countryToken)) ||
+                (regionToken && normalizedTitle.includes(regionToken));
+              return matchesContext;
             })
+            .map((item) => item.url)
             .slice(0, 6);
           setContextImages(images);
         } else {
