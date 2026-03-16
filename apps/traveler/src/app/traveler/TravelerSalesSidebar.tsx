@@ -16,7 +16,18 @@ const FALLBACK_TRAVEL_VISUALS = [
   "https://images.unsplash.com/photo-1521334884684-d80222895322?auto=format&fit=crop&w=1200&q=80",
   "https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?auto=format&fit=crop&w=1200&q=80",
 ];
-const IMAGE_CONTEXT_BLOCKLIST = ["fruit", "food", "dish", "bean", "verdura", "vegetable", "drink", "cocktail"];
+const IMAGE_CONTEXT_BLOCKLIST = [
+  // Food & drink
+  "fruit", "food", "dish", "bean", "verdura", "vegetable", "drink", "cocktail",
+  "recipe", "cuisine", "meal", "cooking", "kitchen", "restaurant_interior",
+  // Abstract / logos / maps / flags
+  "logo", "flag", "coat_of_arms", "emblem", "icon", "map", "chart", "diagram",
+  "infographic", "stamp", "seal", "crest",
+  // People (mugshots, portraits, identifiable persons)
+  "portrait", "mugshot", "headshot", "selfie",
+  // Unrelated nature
+  "microscope", "bacteria", "cell", "scientific",
+];
 
 type WeatherSnapshot = {
   temperature: number;
@@ -273,18 +284,22 @@ export default function TravelerSalesSidebar({
         const countryToken = normalizeSearchToken(context.country);
         const regionToken = normalizeSearchToken(context.region);
 
+        // --- Build focused Wikimedia Commons query ---
+        // Use explicit travel/tourism/landmark terms scoped to the resolved city/country.
+        const travelTerms = "tourism landmark skyline architecture monument nature travel";
         const commonsQuery = [
           context.city,
-          context.region || "",
           context.country || "",
-          "city skyline tourism landmark mountain hiking travel",
-          "-fruit -food -recipe",
+          context.region || "",
+          travelTerms,
         ]
           .filter(Boolean)
           .join(" ");
 
+        let fetchedImages: string[] = [];
+
         const commonsRes = await fetch(
-          `https://commons.wikimedia.org/w/api.php?action=query&format=json&origin=*&generator=search&gsrnamespace=6&gsrlimit=12&gsrsearch=${encodeURIComponent(commonsQuery)}&prop=imageinfo&iiprop=url`,
+          `https://commons.wikimedia.org/w/api.php?action=query&format=json&origin=*&generator=search&gsrnamespace=6&gsrlimit=20&gsrsearch=${encodeURIComponent(commonsQuery)}&prop=imageinfo&iiprop=url`,
           { signal: controller.signal },
         );
         if (commonsRes.ok) {
@@ -294,7 +309,9 @@ export default function TravelerSalesSidebar({
             };
           };
           const pages = commonsPayload.query?.pages || {};
-          const images = Object.values(pages)
+          // City token sub-parts (e.g. "new" + "york" for "new york")
+          const cityParts = cityToken.split(" ").filter((p) => p.length > 2);
+          fetchedImages = Object.values(pages)
             .map((page) => ({
               url: page.imageinfo?.[0]?.url || null,
               title: page.title || "",
@@ -303,25 +320,44 @@ export default function TravelerSalesSidebar({
             .filter((item) => /\.(jpg|jpeg|png|webp)(?:\?|$)/i.test(item.url))
             .filter((item) => {
               const normalizedTitle = normalizeSearchToken(item.title);
-              const normalizedUrl = item.url.toLowerCase();
+              const normalizedUrl = normalizeSearchToken(item.url);
+              // Block irrelevant content
               const isBlocked = IMAGE_CONTEXT_BLOCKLIST.some(
                 (word) => normalizedTitle.includes(word) || normalizedUrl.includes(word),
               );
               if (isBlocked) return false;
-
-              // Require explicit context match to reduce unrelated landmarks (e.g. Eiffel for Lima).
-              const matchesContext =
-                (cityToken && normalizedTitle.includes(cityToken)) ||
-                (countryToken && normalizedTitle.includes(countryToken)) ||
-                (regionToken && normalizedTitle.includes(regionToken));
-              return matchesContext;
+              // Skip tiny thumbnails (URLs with very small px indicators)
+              if (/[_-]\d{1,2}px[_-]/i.test(item.url)) return false;
+              // Require context match: the image must reference the city, country, region,
+              // or at least a meaningful part of the city name
+              const matchesCity = cityToken && normalizedTitle.includes(cityToken);
+              const matchesCityPart = cityParts.some((part) => normalizedTitle.includes(part));
+              const matchesCountry = countryToken && normalizedTitle.includes(countryToken);
+              const matchesRegion = regionToken && normalizedTitle.includes(regionToken);
+              return matchesCity || matchesCityPart || matchesCountry || matchesRegion;
             })
             .map((item) => item.url)
             .slice(0, 6);
-          setContextImages(images);
-        } else {
-          setContextImages([]);
         }
+
+        // --- Unsplash fallback when Commons returns fewer than 2 relevant images ---
+        if (fetchedImages.length < 2) {
+          const unsplashTerms = [
+            context.city,
+            context.country || "",
+            "travel",
+          ].filter(Boolean).join(",");
+          // Unsplash Source (no API key needed) returns a photo matching the query.
+          // We build 5 deterministic URLs using different widths as cache busters.
+          const unsplashBase = `https://source.unsplash.com/800x600/?${encodeURIComponent(unsplashTerms)}`;
+          fetchedImages = [
+            `${unsplashBase}&sig=1`,
+            `${unsplashBase}&sig=2`,
+            `${unsplashBase}&sig=3`,
+          ];
+        }
+
+        setContextImages(fetchedImages);
 
         const weatherRes = await fetch(
           `https://api.open-meteo.com/v1/forecast?latitude=${geo.latitude}&longitude=${geo.longitude}&timezone=auto&current=temperature_2m,apparent_temperature,weather_code,wind_speed_10m`,

@@ -32,7 +32,7 @@ export default function TravelerWorkspaceLayout({
   const stageLabel = useMemo(() => {
     const map: Record<string, string> = {
       explore: "Explorando",
-      design: "Disenando",
+      design: "Diseñando",
       decide: "Decidiendo",
       booked: "Reservado",
       traveling: "Viajando",
@@ -47,6 +47,7 @@ export default function TravelerWorkspaceLayout({
         <div className="absolute -right-24 top-12 h-64 w-64 rounded-full bg-amber-300/20 blur-3xl" />
         <div className="absolute -left-24 bottom-8 h-64 w-64 rounded-full bg-sky-300/20 blur-3xl" />
       </div>
+
       <AnimatePresence>
         {bgImage && (
           <motion.div
@@ -67,42 +68,48 @@ export default function TravelerWorkspaceLayout({
 
       <div className="trav-container flex-1 flex flex-col h-full overflow-hidden relative z-10">
         {topBar ? <div className="mb-3 shrink-0">{topBar}</div> : null}
-        {hasRightPanel ? (
-          <div className="mb-2 lg:hidden">
-            <button
-              onClick={() => setIsMobilePanelOpen(true)}
-              className="trav-glass-soft flex w-full items-center justify-between rounded-2xl border border-slate-200/80 px-3 py-2.5 text-left"
-              aria-label="Abrir resumen del viaje"
-            >
-              <div>
-                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-500">Resumen en vivo</p>
-                <p className="text-sm font-semibold text-slate-900">
-                  {selectedDestination || "Aun sin destino definido"}
-                </p>
-                <p className="text-[11px] text-slate-600">
-                  {stageLabel} · {boardCount} en pizarron
-                </p>
-              </div>
-              <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-r from-amber-400 to-amber-500">
-                <Layers className="h-4 w-4 text-slate-900" />
-              </span>
-            </button>
-          </div>
-        ) : null}
+
         <div className="trav-grid trav-layout-divider flex-1 overflow-hidden transition-all duration-500 ease-in-out">
+          {/* Main left panel — full height on mobile, chat fills entire area */}
           <section className="trav-reveal trav-layout-pane h-full overflow-hidden relative transition-all duration-500 min-w-0">
             {left}
+
+            {/* FAB: floating button overlaid on chat, above input bar — mobile only */}
+            {hasRightPanel && (
+              <motion.button
+                key="fab"
+                initial={{ opacity: 0, scale: 0.75 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ type: "spring", stiffness: 340, damping: 26, delay: 0.3 }}
+                onClick={() => setIsMobilePanelOpen(true)}
+                aria-label="Abrir resumen del viaje"
+                className="lg:hidden absolute bottom-[76px] right-3 z-20 flex items-center gap-2 rounded-full bg-gradient-to-br from-amber-400 to-amber-500 pl-3 pr-3.5 py-2.5 shadow-xl shadow-amber-500/25 ring-1 ring-amber-300/50 active:scale-95 transition-transform select-none"
+              >
+                <Layers className="h-4 w-4 text-slate-900 shrink-0" />
+                <span className="text-[12px] font-bold text-slate-900 leading-none whitespace-nowrap">
+                  {selectedDestination
+                    ? selectedDestination.split(",")[0].trim()
+                    : stageLabel}
+                </span>
+                {boardCount > 0 && (
+                  <span className="flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-slate-900 px-1.5 text-[10px] font-bold tabular-nums text-amber-400">
+                    {boardCount}
+                  </span>
+                )}
+              </motion.button>
+            )}
           </section>
 
+          {/* Right sidebar — desktop only */}
           {hasRightPanel ? (
             <aside className="trav-reveal trav-layout-pane trav-layout-pane--right hidden lg:block h-full overflow-y-auto pr-1 pb-4 transition-all duration-500">
               {right}
             </aside>
           ) : null}
         </div>
-
       </div>
 
+      {/* Bottom sheet modal — mobile only */}
       {hasRightPanel ? (
         <BottomSheetModal
           isOpen={isMobilePanelOpen}
