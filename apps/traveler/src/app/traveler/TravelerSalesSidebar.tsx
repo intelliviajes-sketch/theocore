@@ -10,6 +10,11 @@ import { useTravelerWorkspace } from "./TravelerWorkspaceContext";
 import { trackTravelerEvent } from "@/lib/traveler/tracking";
 
 const PRICE_KEYS = ["price", "precio", "amount", "total", "base_price", "price_from"];
+const FALLBACK_TRAVEL_VISUALS = [
+  "https://images.unsplash.com/photo-1431274172761-fca41d930114?auto=format&fit=crop&w=1200&q=80",
+  "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1200&q=80",
+  "https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?auto=format&fit=crop&w=1200&q=80",
+];
 
 type WeatherSnapshot = {
   temperature: number;
@@ -114,6 +119,7 @@ export default function TravelerSalesSidebar({
   const { insight, journeyState, selectJourneyProduct, chatMessages } = useTravelerWorkspace();
   const [weather, setWeather] = useState<WeatherSnapshot | null>(null);
   const [weatherLoading, setWeatherLoading] = useState(false);
+  const [failedImages, setFailedImages] = useState<Record<string, boolean>>({});
 
   const recommendedOffers = useMemo(() => {
     if (hideRecommendations) return [] as CatalogProduct[];
@@ -163,14 +169,20 @@ export default function TravelerSalesSidebar({
 
     const destinationImages = destinationToken
       ? [1, 2, 3].map(
-          (index) =>
-            `https://source.unsplash.com/featured/780x520/?${encodeURIComponent(`${destinationToken} city travel`)}` +
-            `&sig=${index}`,
+          (index) => `https://picsum.photos/seed/${encodeURIComponent(`${destinationToken}-${index}`)}/780/520`,
         )
       : [];
 
-    return uniqueStrings([...offerImages, ...destinationImages]).slice(0, 5);
+    return uniqueStrings([...offerImages, ...destinationImages, ...FALLBACK_TRAVEL_VISUALS]).slice(0, 5);
   }, [destinationToken, displayOffers, selectedOffer]);
+  const heroImage = useMemo(
+    () => visualGallery.find((image) => !failedImages[image]) || null,
+    [failedImages, visualGallery],
+  );
+  const thumbnailImages = useMemo(
+    () => visualGallery.filter((image) => !failedImages[image]).slice(0, 4),
+    [failedImages, visualGallery],
+  );
 
   const interestTags = useMemo(() => {
     const raw = uniqueStrings([
@@ -285,11 +297,23 @@ export default function TravelerSalesSidebar({
         </div>
 
         <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white/90">
-          {visualGallery[0] ? (
-            <div className="h-28 w-full overflow-hidden">
-              <img src={visualGallery[0]} alt={destination || "Destino sugerido"} className="h-full w-full object-cover" />
+          <div className="relative h-28 w-full overflow-hidden bg-gradient-to-r from-slate-200 via-slate-100 to-slate-200">
+            {heroImage ? (
+              <img
+                src={heroImage}
+                alt={destination || "Destino sugerido"}
+                className="h-full w-full object-cover"
+                onError={() => {
+                  setFailedImages((current) => ({ ...current, [heroImage]: true }));
+                }}
+              />
+            ) : null}
+            <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-slate-900/55 to-transparent px-3 py-2">
+              <p className="line-clamp-1 text-xs font-semibold text-white">
+                {destination || "Inspiracion de viaje personalizada"}
+              </p>
             </div>
-          ) : null}
+          </div>
           <div className="p-3">
             <p className="line-clamp-1 text-sm font-semibold text-slate-900">
               {destination || "Personalizando tu viaje"}
@@ -324,12 +348,15 @@ export default function TravelerSalesSidebar({
         {destination ? (
           <>
             <div className="grid grid-cols-2 gap-2">
-              {visualGallery.slice(0, 4).map((image, index) => (
+              {thumbnailImages.map((image, index) => (
                 <div key={`${image}-${index}`} className="overflow-hidden rounded-xl border border-slate-200 bg-slate-100">
                   <img
                     src={image}
                     alt={`Vista ${index + 1} de ${destination}`}
                     className="h-20 w-full object-cover transition-transform duration-500 hover:scale-105"
+                    onError={() => {
+                      setFailedImages((current) => ({ ...current, [image]: true }));
+                    }}
                   />
                 </div>
               ))}
