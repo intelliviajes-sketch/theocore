@@ -188,8 +188,13 @@ export default function TravelerSalesSidebar({
       ...displayOffers.flatMap((offer) => [offer.coverImage, ...(offer.images || [])]),
     ]);
 
-    return uniqueStrings([...offerImages, ...contextImages, ...FALLBACK_TRAVEL_VISUALS]).slice(0, 5);
-  }, [contextImages, displayOffers, selectedOffer]);
+    if (destinationToken) {
+      // With a concrete destination, prioritize geographic context visuals over product-media.
+      return uniqueStrings([...contextImages, ...FALLBACK_TRAVEL_VISUALS, ...offerImages]).slice(0, 5);
+    }
+
+    return uniqueStrings([...offerImages, ...FALLBACK_TRAVEL_VISUALS]).slice(0, 5);
+  }, [contextImages, destinationToken, displayOffers, selectedOffer]);
   const heroImage = useMemo(
     () => visualGallery.find((image) => !failedImages[image]) || null,
     [failedImages, visualGallery],
