@@ -2,11 +2,12 @@ import React, { FormEventHandler, MutableRefObject, useMemo, useState } from "re
 import { Loader2, SendHorizontal, X, Sparkles } from "lucide-react";
 import { useDraggable } from "@dnd-kit/core";
 import { motion, useMotionValue, useTransform } from "framer-motion";
-import { ChatMessage, UserLite, cn } from "./types-and-utils";
+import { Brain, ChatMessage, UserLite, cn } from "./types-and-utils";
 import type { CatalogProduct } from "@/lib/catalog/travelers";
 import { useTravelerPreferences } from "../useTravelerPreferences";
 import { useTravelerWorkspace } from "../TravelerWorkspaceContext";
 import { normalizeAssistantOutput } from "@/lib/traveler/assistant-output";
+import type { StructuredChatResponse } from "@/lib/chat/structured";
 
 interface ChatColumnProps {
   messages: ChatMessage[];
@@ -17,7 +18,12 @@ interface ChatColumnProps {
   setInput: (value: string) => void;
   onSend: FormEventHandler<HTMLFormElement>;
   offers?: CatalogProduct[];
+  activeBrain: Brain | null;
+  structuredByMessageTs?: Record<number, StructuredChatResponse>;
   onSelectOffer?: (offer: CatalogProduct) => void;
+  onQuickReplySelect?: (value: string) => void;
+  onStructuredCardSelect?: (cardId: string, cardTitle: string) => void;
+  onStructuredCta?: (action: string, label: string) => void;
   showSuggestedOffers?: boolean;
   isLandingPromptFlow?: boolean;
   showLandingProcessing?: boolean;
@@ -315,6 +321,125 @@ function AssistantTypingSkeleton() {
   );
 }
 
+function StructuredResponseBlocks({
+  structured,
+  offers,
+  onQuickReplySelect,
+  onStructuredCardSelect,
+  onStructuredCta,
+}: {
+  structured: StructuredChatResponse;
+  offers: CatalogProduct[];
+  onQuickReplySelect?: (value: string) => void;
+  onStructuredCardSelect?: (cardId: string, cardTitle: string) => void;
+  onStructuredCta?: (action: string, label: string) => void;
+}) {
+  const hasQuickReplies = structured.quickReplies.length > 0;
+  const hasCatalogCards = structured.catalogCards.length > 0;
+  const hasComparison = structured.comparisonItems.length > 0;
+  const hasSnapshot = Boolean(structured.tripSnapshot?.summary);
+  const hasCta = Boolean(structured.cta);
+
+  if (!hasQuickReplies && !hasCatalogCards && !hasComparison && !hasSnapshot && !hasCta) {
+    return null;
+  }
+
+  return (
+    <div className="mt-3 space-y-3">
+      {hasSnapshot ? (
+        <div className="rounded-2xl border border-amber-200/80 bg-gradient-to-br from-amber-50/85 to-orange-50/70 p-3">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-amber-700">Resumen del viaje</p>
+          <p className="mt-1 text-xs text-slate-700">{structured.tripSnapshot?.summary}</p>
+        </div>
+      ) : null}
+
+      {hasCatalogCards ? (
+        <div className="grid gap-2">
+          {structured.catalogCards.slice(0, 4).map((card) => {
+            const linkedOffer = offers.find((offer) => offer.id === card.id) || null;
+            const linkedPrice = linkedOffer ? readOfferPrice(linkedOffer) : null;
+            return (
+              <button
+                key={`structured-card-${card.id}`}
+                type="button"
+                onClick={() => onStructuredCardSelect?.(card.id, card.title)}
+                className="group w-full rounded-2xl border border-slate-200 bg-white/90 p-3 text-left transition-all hover:-translate-y-[1px] hover:border-amber-300 hover:shadow-sm"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="line-clamp-1 text-sm font-semibold text-slate-900 group-hover:text-amber-700">{card.title}</p>
+                    <p className="mt-1 line-clamp-2 text-xs text-slate-600">{card.summary}</p>
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      {(card.tags || []).slice(0, 3).map((tag) => (
+                        <span key={`${card.id}-${tag}`} className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-600">
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="shrink-0 text-right">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-500">
+                      {card.destination || linkedOffer?.destination || "Destino"}
+                    </p>
+                    <p className="mt-1 text-xs font-semibold text-slate-800">
+                      {linkedPrice !== null ? formatMoney(linkedPrice) : "Consultar"}
+                    </p>
+                  </div>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      ) : null}
+
+      {hasComparison ? (
+        <div className="grid gap-2 md:grid-cols-2">
+          {structured.comparisonItems.slice(0, 4).map((item) => (
+            <div key={`comparison-${item.id}`} className="rounded-2xl border border-slate-200 bg-slate-50/80 p-3">
+              <p className="text-xs font-semibold text-slate-900">{item.title}</p>
+              {item.subtitle ? <p className="mt-1 text-[11px] text-slate-600">{item.subtitle}</p> : null}
+              {item.highlights.length > 0 ? (
+                <ul className="mt-2 space-y-1">
+                  {item.highlights.slice(0, 3).map((line, index) => (
+                    <li key={`${item.id}-h-${index}`} className="text-[11px] text-slate-700">
+                      - {line}
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+            </div>
+          ))}
+        </div>
+      ) : null}
+
+      {hasQuickReplies ? (
+        <div className="flex flex-wrap gap-2">
+          {structured.quickReplies.slice(0, 4).map((item) => (
+            <button
+              key={`quick-reply-${item.id}`}
+              type="button"
+              onClick={() => onQuickReplySelect?.(item.value)}
+              className="rounded-full border border-amber-200 bg-amber-50/85 px-3 py-1.5 text-xs font-semibold text-amber-700 transition-colors hover:bg-amber-100"
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
+      ) : null}
+
+      {hasCta ? (
+        <button
+          type="button"
+          onClick={() => onStructuredCta?.(structured.cta?.action || "continue", structured.cta?.label || "Continuar")}
+          className="w-full rounded-xl bg-gradient-to-r from-slate-900 to-slate-700 px-3 py-2 text-sm font-semibold text-white transition hover:from-slate-800 hover:to-slate-700"
+        >
+          {structured.cta?.label || "Continuar"}
+        </button>
+      ) : null}
+    </div>
+  );
+}
+
 function DraggableOfferCard({ offer, children }: { offer: CatalogProduct, children: React.ReactNode }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: `draggable-offer-${offer.id}`,
@@ -384,7 +509,12 @@ export default function ChatColumn({
   setInput,
   onSend,
   offers = [],
+  activeBrain,
+  structuredByMessageTs = {},
   onSelectOffer,
+  onQuickReplySelect,
+  onStructuredCardSelect,
+  onStructuredCta,
   showSuggestedOffers = true,
   isLandingPromptFlow = false,
   showLandingProcessing = true,
@@ -407,12 +537,26 @@ export default function ChatColumn({
   const topOffers = useMemo(() => rankOffers(offers).slice(0, 3), [offers]);
   const openOfferData = useMemo(() => (openOffer ? readTabData(openOffer) : null), [openOffer]);
   const compactCards = compactMode;
+  const brainLabel = activeBrain?.name || "Traveler Brain";
   const emptyStateMessage = isLandingPromptFlow && showLandingProcessing
     ? "Procesando tu mensaje..."
     : "";
 
   return (
     <div className="trav-panel trav-glass trav-reveal flex h-[clamp(320px,calc(100dvh-16rem),820px)] w-full flex-col overflow-hidden rounded-3xl transition-shadow duration-300 focus-within:shadow-[0_22px_48px_-38px_rgba(15,23,42,0.38)] sm:h-[clamp(420px,calc(100dvh-14.5rem),860px)] lg:h-[calc(100dvh-12rem)]">
+      <div className="relative border-b border-slate-200/80 bg-white/70 px-4 py-3 backdrop-blur-md sm:px-5">
+        <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-amber-200 to-transparent" />
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500">Asistente activo</p>
+            <p className="line-clamp-1 text-sm font-semibold text-slate-900">{brainLabel}</p>
+          </div>
+          <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white/80 px-3 py-1 text-[11px] font-medium text-slate-600">
+            <span className={cn("h-2 w-2 rounded-full", sending ? "animate-pulse bg-amber-400" : "bg-emerald-400")} />
+            {sending ? "Pensando..." : "Acompanando"}
+          </div>
+        </div>
+      </div>
       <div ref={centerRef} className="relative flex-1 space-y-3 overflow-auto overscroll-contain p-3 pb-32 sm:p-5 sm:pb-36 scroll-smooth">
         {messages.length === 0 ? (
           emptyStateMessage ? (
@@ -422,7 +566,20 @@ export default function ChatColumn({
           ) : null
         ) : (
           <>
-            {messages.map((message, index) => (
+            {messages.map((message, index) => {
+              const structured = message.role === "assistant" ? structuredByMessageTs[message.ts] : undefined;
+              const hasStructuredBlocks = Boolean(
+                structured
+                && (
+                  structured.quickReplies.length > 0
+                  || structured.catalogCards.length > 0
+                  || structured.comparisonItems.length > 0
+                  || structured.tripSnapshot
+                  || structured.cta
+                ),
+              );
+
+              return (
               <div
                 key={message.ts + "_" + index}
                 className={cn("space-y-3", message.role === "user" ? "items-end" : "items-start")}
@@ -460,7 +617,17 @@ export default function ChatColumn({
                   </div>
                 </div>
 
-                {showSuggestedOffers && message.role === "assistant" && index === lastAssistantIndex && topOffers.length > 0 ? (
+                {message.role === "assistant" && structured ? (
+                  <StructuredResponseBlocks
+                    structured={structured}
+                    offers={offers}
+                    onQuickReplySelect={onQuickReplySelect}
+                    onStructuredCardSelect={onStructuredCardSelect}
+                    onStructuredCta={onStructuredCta}
+                  />
+                ) : null}
+
+                {showSuggestedOffers && message.role === "assistant" && !hasStructuredBlocks && index === lastAssistantIndex && topOffers.length > 0 ? (
                   <div className="trav-glass-soft rounded-2xl p-4 w-full">
                     <p className="text-xs font-semibold text-slate-700">
                       Opciones sugeridas
@@ -538,7 +705,8 @@ export default function ChatColumn({
                   </div>
                 ) : null}
               </div>
-            ))}
+            );
+            })}
           </>
         )}
       </div>

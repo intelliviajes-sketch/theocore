@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useTenant } from "@/contexts/tenant";
 import { useTravelerCatalog } from "@/contexts/traveler-catalog";
 import { getTenantBrandName } from "@/lib/tenant/presentation";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { DndContext, DragEndEvent, MouseSensor, TouchSensor, useSensor, useSensors } from "@dnd-kit/core";
 
 import ChatColumn from "./ChatColumn";
@@ -16,6 +16,11 @@ import { useTravelerWorkspace } from "../TravelerWorkspaceContext";
 import { loadBrainsForTenant } from "@/lib/traveler/brains";
 import { normalizeAssistantOutput } from "@/lib/traveler/assistant-output";
 import { trackTravelerEvent } from "@/lib/traveler/tracking";
+import {
+  normalizeStructuredChatResponse,
+  type StructuredChatResponse,
+  type ChatStage,
+} from "@/lib/chat/structured";
 
 const LANDING_PROMPT_STORAGE_KEY = "traveler:landingPrompt";
 // Landing handoff flow:
@@ -36,7 +41,41 @@ function pickBestChatBrain(brains: Brain[], preferredBrainId: string | null | un
   return byType ?? brains[0] ?? null;
 }
 
+function mapStructuredStageToJourney(stage?: ChatStage) {
+  if (!stage) return null;
+  if (stage === "discover") return "explore" as const;
+  if (stage === "qualify" || stage === "compare") return "design" as const;
+  if (stage === "decide" || stage === "prepare") return "decide" as const;
+  return null;
+}
+
+function chunkAssistantText(text: string) {
+  const normalized = text.trim();
+  if (!normalized) return [] as string[];
+  const tokens = normalized.split(/(\s+)/).filter(Boolean);
+  const chunks: string[] = [];
+  let current = "";
+  for (const token of tokens) {
+    current += token;
+    if (current.length >= 28) {
+      chunks.push(current);
+      current = "";
+    }
+  }
+  if (current.length > 0) {
+    chunks.push(current);
+  }
+  return chunks;
+}
+
+function wait(ms: number) {
+  return new Promise<void>((resolve) => {
+    window.setTimeout(resolve, ms);
+  });
+}
+
 export default function TravelerChatPage() {
+  const router = useRouter();
   const { user: authUser } = useAuth();
   const tenant = useTenant();
   const { featured } = useTravelerCatalog();
@@ -52,6 +91,8 @@ export default function TravelerChatPage() {
     persistChatMessage,
     setInsightFromAiText,
     selectJourneyProduct,
+    setJourneyDestination,
+    setJourneyStage,
     touchJourneyEntry,
     addBoardItem,
   } = useTravelerWorkspace();
@@ -75,6 +116,7 @@ export default function TravelerChatPage() {
   const [storedLandingPrompt, setStoredLandingPrompt] = useState("");
   const [isLandingPromptFlow, setIsLandingPromptFlow] = useState(false);
   const [showLandingProcessing, setShowLandingProcessing] = useState(true);
+  const [structuredByMessageTs, setStructuredByMessageTs] = useState<Record<number, StructuredChatResponse>>({});
   const [hasMessagesEver, setHasMessagesEver] = useState(false);
   const centerRef = useRef<HTMLDivElement>(null);
   const focusedProductRef = useRef<string | null>(null);
@@ -199,13 +241,14 @@ export default function TravelerChatPage() {
 
     setSending(true);
     const now = Date.now();
+    const assistantTs = now + 1;
     const selectedBrain = activeBrain;
     const userMessage: ChatMessage = { role: "user", content: text, ts: now };
     pushMessage(userMessage);
     if (rawText === input) {
       setInput("");
     }
-    pushMessage({ role: "assistant", content: "", ts: now + 1 });
+    pushMessage({ role: "assistant", content: "", ts: assistantTs });
 
     try {
       await persistChatMessage(userMessage, selectedBrain?.id);
@@ -249,6 +292,108 @@ export default function TravelerChatPage() {
         ts: now - 1000,
       };
 
+      const payloadMessages = [...messagesRef.current, systemMessage, { role: "user", content: text, ts: now + 1 }];
+      let structuredHandled = false;
+
+      try {
+        const structuredRes = await fetch("/api/chat?stream=0", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            model,
+            stream: false,
+            responseFormat: "structured",
+            responseProfile: "ivi_travel",
+            brain: selectedBrain ?? null,
+            messages: payloadMessages,
+          }),
+        });
+        if (!structuredRes.ok) {
+          let apiError = `Error ${structuredRes.status}`;
+          try {
+            const payload = await structuredRes.json();
+            if (payload?.error && typeof payload.error === "string") {
+              apiError = payload.error;
+            }
+          } catch {
+            // ignore JSON parse errors for non-json responses
+          }
+          throw new Error(apiError);
+        }
+
+        const payload = await structuredRes.json().catch(() => ({}));
+        const structured = normalizeStructuredChatResponse(payload?.structured ?? payload);
+        const finalAssistant = normalizeAssistantOutput(structured.message);
+        if (!finalAssistant) {
+          throw new Error("Respuesta estructurada vacia.");
+        }
+
+        const chunks = chunkAssistantText(finalAssistant);
+        for (let i = 0; i < chunks.length; i += 1) {
+          appendAssistantChunk(chunks[i]);
+          if (i < chunks.length - 1) {
+            await wait(22);
+          }
+        }
+
+        setChatMessages((current) => {
+          if (current.length === 0) return current;
+          const next = [...current];
+          const lastIndex = next.length - 1;
+          if (next[lastIndex].role !== "assistant") return current;
+          next[lastIndex] = {
+            ...next[lastIndex],
+            content: finalAssistant,
+          };
+          return next;
+        });
+
+        setStructuredByMessageTs((current) => ({
+          ...current,
+          [assistantTs]: structured,
+        }));
+
+        const mappedStage = mapStructuredStageToJourney(structured.tripStatePatch.stage);
+        if (mappedStage) {
+          setJourneyStage(mappedStage);
+        }
+        const destinationFromPatch = structured.tripSnapshot?.destination
+          || structured.tripStatePatch.destinationCandidates?.[0]
+          || null;
+        if (destinationFromPatch) {
+          setJourneyDestination(destinationFromPatch);
+        }
+        const selectedIds = structured.tripStatePatch.selectedProductIds ?? [];
+        const selectedFromPatch = selectedIds
+          .map((productId) => featured.find((offer) => offer.id === productId))
+          .find(Boolean);
+        if (selectedFromPatch) {
+          selectJourneyProduct(selectedFromPatch);
+        } else if (structured.catalogCards.length > 0) {
+          const selectedFromCards = structured.catalogCards
+            .map((card) => featured.find((offer) => offer.id === card.id))
+            .find(Boolean);
+          if (selectedFromCards) {
+            selectJourneyProduct(selectedFromCards);
+          }
+        }
+
+        const assistantMessage: ChatMessage = {
+          role: "assistant",
+          content: finalAssistant,
+          ts: assistantTs,
+        };
+        await persistChatMessage(assistantMessage, selectedBrain?.id);
+        setInsightFromAiText(finalAssistant, featured);
+        structuredHandled = true;
+      } catch (structuredError) {
+        console.error("Structured chat fallback:", structuredError);
+      }
+
+      if (structuredHandled) {
+        return;
+      }
+
       const res = await fetch("/api/chat?stream=1", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -257,7 +402,7 @@ export default function TravelerChatPage() {
           stream: true,
           responseProfile: "ivi_travel",
           brain: selectedBrain ?? null,
-          messages: [...messagesRef.current, systemMessage, { role: "user", content: text, ts: now + 1 }],
+          messages: payloadMessages,
         }),
       });
       if (!res.ok) {
@@ -335,7 +480,6 @@ export default function TravelerChatPage() {
           next[lastIndex] = {
             ...next[lastIndex],
             content: finalAssistant,
-            ts: Date.now(),
           };
           return next;
         });
@@ -343,7 +487,7 @@ export default function TravelerChatPage() {
         const assistantMessage: ChatMessage = {
           role: "assistant",
           content: finalAssistant,
-          ts: Date.now(),
+          ts: assistantTs,
         };
         await persistChatMessage(assistantMessage, selectedBrain?.id);
         setInsightFromAiText(finalAssistant, featured);
@@ -367,6 +511,51 @@ export default function TravelerChatPage() {
 
   async function onSend() {
     await sendMessage(input);
+  }
+
+  async function onQuickReplySelect(value: string) {
+    const next = value.trim();
+    if (!next) return;
+    await sendMessage(next);
+  }
+
+  async function onStructuredCardSelect(cardId: string, cardTitle: string) {
+    const matchedOffer = featured.find((offer) => offer.id === cardId) || null;
+    if (matchedOffer) {
+      selectJourneyProduct(matchedOffer);
+      touchJourneyEntry({
+        mode: "chat",
+        title: `Chat: ${matchedOffer.title}`,
+        status: "in_progress",
+        route: "/traveler/chat",
+      });
+      await sendMessage(`Quiero profundizar en esta opcion: ${matchedOffer.title}.`);
+      return;
+    }
+    await sendMessage(`Quiero explorar esta propuesta: ${cardTitle}.`);
+  }
+
+  async function onStructuredCta(action: string, label: string) {
+    const normalizedAction = action.trim().toLowerCase();
+    if (normalizedAction === "open_planning") {
+      touchJourneyEntry({
+        mode: "planning",
+        title: "Planning guiado",
+        status: "in_progress",
+        route: "/traveler/planning",
+      });
+      router.push("/traveler/planning");
+      return;
+    }
+    if (normalizedAction === "show_options") {
+      await sendMessage("Muestrame opciones concretas para comparar.");
+      return;
+    }
+    if (normalizedAction === "refine") {
+      await sendMessage("Quiero refinar esta propuesta con mas detalle.");
+      return;
+    }
+    await sendMessage(label || "Continuar");
   }
 
   async function onSelectOffer(offer: (typeof featured)[number]) {
@@ -442,6 +631,7 @@ export default function TravelerChatPage() {
       // Ensure the first prompt starts from a clean chat context.
       messagesRef.current = [];
       setChatMessages([]);
+      setStructuredByMessageTs({});
       void sendMessage(query);
     };
 
@@ -520,11 +710,22 @@ export default function TravelerChatPage() {
             user={user}
             setInput={setInput}
             offers={featured}
+            activeBrain={activeBrain}
+            structuredByMessageTs={structuredByMessageTs}
             showSuggestedOffers={!suppressCatalogSuggestions}
             isLandingPromptFlow={landingUiSuppression}
             showLandingProcessing={landingUiSuppression && showLandingProcessing}
             onSelectOffer={(offer) => {
               void onSelectOffer(offer);
+            }}
+            onQuickReplySelect={(value) => {
+              void onQuickReplySelect(value);
+            }}
+            onStructuredCardSelect={(cardId, cardTitle) => {
+              void onStructuredCardSelect(cardId, cardTitle);
+            }}
+            onStructuredCta={(action, label) => {
+              void onStructuredCta(action, label);
             }}
             onSend={(event) => {
               event.preventDefault();
