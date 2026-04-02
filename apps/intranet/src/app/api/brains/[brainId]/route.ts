@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { createSupabaseServer } from "@/lib/supabase/server";
 import { getRequestIp, resolveRequestUser } from "@/lib/api/auth";
-import { takeRateLimit } from "@intelliviajes/lib/api/rate-limit";
+import { takeRateLimit } from "@/lib/api/rate-limit";
 
 const GEMINI_API_KEY = process.env.GOOGLE_GENERATIVE_AI_API_KEY!;
 const MAX_FILE_SIZE = 10 * 1024 * 1024;

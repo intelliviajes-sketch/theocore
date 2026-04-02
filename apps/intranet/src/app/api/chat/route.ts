@@ -13,7 +13,7 @@ import {
   type ChatResponseFormat,
 } from "@/lib/chat/structured";
 import { getRequestIp } from "@/lib/api/auth";
-import { takeRateLimit } from "@intelliviajes/lib/api/rate-limit";
+import { takeRateLimit } from "@/lib/api/rate-limit";
 
 const DEFAULT_MODEL = "gemini-flash-lite-latest";
 const MODEL_FALLBACKS = [
