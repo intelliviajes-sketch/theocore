@@ -213,7 +213,7 @@ export default function NavigationCards() {
       {loading ? (
         <LoaderPro message={loaderMessage} />
       ) : cards.length === 0 ? (
-        <div className="text-slate-500 dark:text-slate-400">No hay elementos disponibles.</div>
+        <div className="hidden" />
       ) : (
         <motion.div
           initial={{ opacity: 0 }}
