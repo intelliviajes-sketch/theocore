@@ -15,7 +15,6 @@ import {
   Package,
   Pipette,
 } from "lucide-react";
-import NavigationCards from "../../../components/intracore/NavigationCards";
 import { supabaseBrowser as supabase } from "@/lib/supabase/client";
 import { theocoreSettingPath } from "@/lib/routes";
 
@@ -373,14 +372,6 @@ export default function Page() {
           </div>
 
           <div className="space-y-6">
-            <div className="rounded-[2rem] border border-white/60 bg-white/80 p-6 shadow-sm backdrop-blur dark:border-slate-800 dark:bg-slate-900/75">
-              <div className="mb-4">
-                <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Accesos operativos</h2>
-                <p className="text-sm text-slate-500 dark:text-slate-400">Solo areas principales de administracion global.</p>
-              </div>
-              <NavigationCards />
-            </div>
-
             <div className="rounded-[2rem] border border-slate-200/80 bg-white/80 p-6 shadow-sm backdrop-blur dark:border-slate-800 dark:bg-slate-900/75">
               <div className="mb-4">
                 <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Catalogos tecnicos</h2>
