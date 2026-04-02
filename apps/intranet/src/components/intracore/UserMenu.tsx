@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabaseBrowser as supabase } from "@/lib/supabase/client";
 
@@ -56,9 +56,9 @@ export default function UserMenu() {
 
   if (loading) {
     return (
-      <div className="flex items-center gap-3 text-sm text-white">
-        <div className="h-8 w-8 rounded-full bg-white/20 animate-pulse" />
-        <div className="h-3 w-24 rounded bg-white/20 animate-pulse" />
+      <div className="flex items-center gap-3 text-sm text-slate-600 dark:text-slate-200">
+        <div className="h-8 w-8 animate-pulse rounded-full bg-slate-300 dark:bg-slate-700" />
+        <div className="h-3 w-24 animate-pulse rounded bg-slate-300 dark:bg-slate-700" />
       </div>
     );
   }
@@ -67,9 +67,9 @@ export default function UserMenu() {
     return (
       <button
         onClick={() => router.push("/intranet/login")}
-        className="rounded-xl border border-white/30 bg-white/10 px-3 py-1.5 text-sm text-white hover:bg-white/20 transition"
+        className="rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-700 transition hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
       >
-        Iniciar sesión
+        Iniciar sesion
       </button>
     );
   }
@@ -78,22 +78,22 @@ export default function UserMenu() {
     <div className="relative" ref={menuRef}>
       <div
         onClick={() => setOpen((prev) => !prev)}
-        className="h-10 w-10 flex items-center justify-center rounded-full bg-white/20 text-white text-sm font-semibold cursor-pointer hover:bg-white/30 transition shadow-lg"
+        className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-full bg-slate-200 text-sm font-semibold text-slate-700 shadow transition hover:bg-slate-300 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700"
         title={name ?? email}
       >
         {getInitials(name ?? email)}
       </div>
 
       {open && (
-        <div className="absolute right-0 mt-2 flex flex-col bg-[#083768] border border-white/20 rounded-xl shadow-2xl p-2 min-w-[160px] z-50 animate-fadeIn">
-          <div className="px-3 py-2 text-white text-xs border-b border-white/20 mb-2">
+        <div className="animate-fadeIn absolute right-0 z-50 mt-2 flex min-w-[180px] flex-col rounded-xl border border-slate-200 bg-white p-2 shadow-2xl dark:border-slate-700 dark:bg-slate-900">
+          <div className="mb-2 border-b border-slate-200 px-3 py-2 text-xs text-slate-600 dark:border-slate-700 dark:text-slate-300">
             {name ?? email}
           </div>
           <button
             onClick={handleLogout}
-            className="text-sm text-white px-3 py-2 rounded-lg hover:bg-white/20 transition text-left"
+            className="rounded-lg px-3 py-2 text-left text-sm text-slate-700 transition hover:bg-slate-100 dark:text-slate-100 dark:hover:bg-slate-800"
           >
-            Logout
+            Cerrar sesion
           </button>
         </div>
       )}

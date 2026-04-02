@@ -19,6 +19,22 @@ export const metadata: Metadata = {
   description: "Plataforma operativa multiagencia impulsada por IA.",
 };
 
+const THEME_BOOTSTRAP_SCRIPT = `
+  (function () {
+    try {
+      var key = "theocore_theme";
+      var saved = window.localStorage.getItem(key);
+      var mode = saved === "light" || saved === "dark" ? saved : "dark";
+      var root = document.documentElement;
+      root.classList.toggle("dark", mode === "dark");
+      root.setAttribute("data-theme", mode);
+    } catch (_) {
+      document.documentElement.classList.add("dark");
+      document.documentElement.setAttribute("data-theme", "dark");
+    }
+  })();
+`;
+
 export default async function RootLayout({
   children,
 }: Readonly<{
@@ -30,7 +46,15 @@ export default async function RootLayout({
   const dataTenant = tenant.kind === "agency" ? tenant.agency?.id ?? "agency" : "platform";
 
   return (
-    <html lang={language} data-tenant-kind={tenant.kind} data-tenant-host={tenant.normalizedHost || "platform"}>
+    <html
+      lang={language}
+      suppressHydrationWarning
+      data-tenant-kind={tenant.kind}
+      data-tenant-host={tenant.normalizedHost || "platform"}
+    >
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_BOOTSTRAP_SCRIPT }} />
+      </head>
       <body className={bodyClassName} data-tenant={dataTenant}>
         <Providers tenant={tenant}>{children}</Providers>
       </body>

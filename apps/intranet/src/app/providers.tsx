@@ -3,6 +3,7 @@
 import type { ReactNode } from "react";
 import { ToastProvider } from "@/components/system/ToastProvider";
 import { TenantProvider } from "@/contexts/tenant";
+import { ThemeProvider } from "@/contexts/theme";
 import type { ResolvedTenant } from "@/lib/tenant/types";
 
 export default function Providers({
@@ -14,7 +15,9 @@ export default function Providers({
 }) {
   return (
     <TenantProvider initialTenant={tenant}>
-      <ToastProvider>{children}</ToastProvider>
+      <ThemeProvider>
+        <ToastProvider>{children}</ToastProvider>
+      </ThemeProvider>
     </TenantProvider>
   );
 }
