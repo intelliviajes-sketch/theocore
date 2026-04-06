@@ -23,8 +23,8 @@ export const AGENCY_TOOL_REGISTRY: AgencyToolRegistryItem[] = [
     label: "Catalogo x IA",
     icon: "Sparkles",
     path: "/intranet/agency/{id}/ag_tools/catalogia",
-    status: "redesign",
-    summary: "Modulo en rediseno. No se expone como herramienta operativa hasta cerrar la nueva version.",
+    status: "live",
+    summary: "Wizard IA para crear productos desde texto, PDF o correo y publicarlos al catalogo.",
   },
   {
     toolKey: "ag_booking",
@@ -55,16 +55,16 @@ export const AGENCY_TOOL_REGISTRY: AgencyToolRegistryItem[] = [
     label: "Marketing",
     icon: "Megaphone",
     path: "/intranet/agency/{id}/ag_tools/marketing",
-    status: "planned",
-    summary: "Automaciones de marketing pendientes de desarrollo.",
+    status: "live",
+    summary: "Hub multi-mercado para planner, tracking, audiencias, automations y A/B tests.",
   },
   {
     toolKey: "socialmedia",
     label: "Social media",
     icon: "Share2",
     path: "/intranet/agency/{id}/ag_tools/socialmedia",
-    status: "planned",
-    summary: "Herramientas de social media aun no implementadas.",
+    status: "live",
+    summary: "Studio operativo para calendario, copy IA, programacion y trazabilidad a traveler.",
   },
 ];
 

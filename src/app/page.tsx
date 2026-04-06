@@ -5,7 +5,11 @@ import { motion, AnimatePresence } from "motion/react";
 import { ArrowRight, Brain, Globe, Users, Sparkles } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTenant } from "@/contexts/tenant";
-import { getTenantBrandName, getTenantLocaleLabel } from "@/lib/tenant/presentation";
+import {
+  getTenantAvailabilityMessage,
+  getTenantBrandName,
+  getTenantLocaleLabel,
+} from "@/lib/tenant/presentation";
 
 /* =========================
    Hook: media query (SSR-safe)
@@ -116,6 +120,25 @@ export default function Page() {
     }),
     []
   );
+
+  const tenantUnavailableMessage = getTenantAvailabilityMessage(tenant);
+  if (tenant.kind === "agency" && tenantUnavailableMessage) {
+    return (
+      <main className="min-h-screen bg-slate-950 px-6 py-12 text-slate-100">
+        <div className="mx-auto max-w-2xl rounded-3xl border border-slate-800 bg-slate-900/70 p-8">
+          <p className="text-xs uppercase tracking-[0.2em] text-cyan-300">Traveler portal</p>
+          <h1 className="mt-2 text-2xl font-semibold">{brandName}</h1>
+          <p className="mt-2 text-sm text-slate-300">{tenantUnavailableMessage}</p>
+          <div className="mt-4 rounded-2xl border border-slate-700 bg-slate-950/60 p-4 text-sm text-slate-300">
+            <p>Mercado: {localeLabel}</p>
+            <p>Contacto: {tenant.agency?.emailContact || "Sin correo de contacto"}</p>
+            <p>Telefono: {tenant.agency?.whatsapp || "Sin telefono de contacto"}</p>
+            <p>Direccion: {tenant.agency?.address || "Sin direccion publicada"}</p>
+          </div>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="relative min-h-screen overflow-hidden bg-gradient-to-br from-[#0B2E52] via-[#0B224D] to-[#0A1830] text-white antialiased">

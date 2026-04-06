@@ -16,7 +16,6 @@ import {
 import ModalShell from "@/components/system/ModalShell";
 
 type Country = { code: string; name: string; emoji_flag: string };
-type AgencyOption = { id: string; commercial_name: string };
 
 type BrainType = "inspira" | "planifica" | "acompana" | "evalua" | "operacional";
 type ExecutionLayer = "frontend" | "backend";
@@ -32,8 +31,6 @@ type Brain = {
   execution_layer: ExecutionLayer;
   brain_category: BrainCategory;
   scope: BrainScope;
-  owner_agency_id: string | null;
-  created_for_agency_id: string | null;
   market_origin: string | null;
   market_destination: string | null;
   market_segment: string | null;
@@ -117,6 +114,81 @@ function cn(...s: (string | false | undefined)[]) {
   return s.filter(Boolean).join(" ");
 }
 
+function ensureRecord(value: unknown): Record<string, unknown> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  return value as Record<string, unknown>;
+}
+
+function createDefaultIdentityProfile(): Record<string, unknown> {
+  return {
+    tone: "cercano y experto",
+    audience: "viajeros",
+    persona: "concierge de viajes",
+    style: "claro, directo y accionable",
+  };
+}
+
+function createDefaultBusinessRules(): Record<string, unknown> {
+  return {
+    prioritize_catalog: true,
+    avoid_fake_inventory: true,
+    suggest_max_options: 3,
+    channels: {
+      chat: {
+        enabled: true,
+        objective: "Descubrir intencion, recomendar y cerrar siguiente paso.",
+        ask_max_questions: 4,
+        output_style: "markdown_claro",
+      },
+      planning: {
+        enabled: true,
+        objective: "Transformar necesidades en plan accionable y validado.",
+        required_fields: ["destination", "travel_dates", "travelers", "budget_range"],
+        validation_mode: "strict",
+        output_style: "resumen_y_checklist",
+      },
+    },
+  };
+}
+
+function normalizeIdentityProfile(value: unknown): Record<string, unknown> {
+  return {
+    ...createDefaultIdentityProfile(),
+    ...ensureRecord(value),
+  };
+}
+
+function normalizeBusinessRules(value: unknown): Record<string, unknown> {
+  const base = createDefaultBusinessRules();
+  const source = ensureRecord(value);
+
+  const baseChannels = ensureRecord(base.channels);
+  const sourceChannels = ensureRecord(source.channels);
+
+  const baseChat = ensureRecord(baseChannels.chat);
+  const sourceChat = ensureRecord(sourceChannels.chat);
+
+  const basePlanning = ensureRecord(baseChannels.planning);
+  const sourcePlanning = ensureRecord(sourceChannels.planning);
+
+  return {
+    ...base,
+    ...source,
+    channels: {
+      ...baseChannels,
+      ...sourceChannels,
+      chat: {
+        ...baseChat,
+        ...sourceChat,
+      },
+      planning: {
+        ...basePlanning,
+        ...sourcePlanning,
+      },
+    },
+  };
+}
+
 function isJSON(s: string) {
   try {
     JSON.parse(s);
@@ -151,8 +223,6 @@ function createEmptyBrain(): Brain {
     execution_layer: "frontend",
     brain_category: "traveler",
     scope: "global",
-    owner_agency_id: null,
-    created_for_agency_id: null,
     market_origin: null,
     market_destination: null,
     market_segment: null,
@@ -162,11 +232,11 @@ function createEmptyBrain(): Brain {
     target_lang: null,
     active: true,
     visibility_level: "public",
-    identity_profile: { tone: "cercano y experto", audience: "viajeros" },
+    identity_profile: createDefaultIdentityProfile(),
     strategic_concept: "# Travel Connector\n- Inspira y planifica\n- Usa catalogo real cuando exista\n- No inventes inventario ni precios.",
     knowledge_bases: [],
     monetization_model: "commission",
-    business_rules: { prioritize_catalog: true, avoid_fake_inventory: true, suggest_max_options: 3 },
+    business_rules: createDefaultBusinessRules(),
     task_automation: [],
     data_sources: [],
     output_targets: [],
@@ -189,8 +259,6 @@ function normalizeBrain(row: Partial<Brain> & Record<string, unknown>): Brain {
     scope: (row.scope as BrainScope) ?? empty.scope,
     visibility_level: (row.visibility_level as VisibilityLevel) ?? empty.visibility_level,
     domaintraveler: ((row.execution_layer as ExecutionLayer) ?? empty.execution_layer) === "frontend" ? ((row.domaintraveler as string | null) ?? "") : null,
-    owner_agency_id: (row.owner_agency_id as string | null) ?? null,
-    created_for_agency_id: (row.created_for_agency_id as string | null) ?? null,
     market_origin: (row.market_origin as string | null) ?? null,
     market_destination: (row.market_destination as string | null) ?? null,
     market_segment: (row.market_segment as string | null) ?? null,
@@ -199,11 +267,11 @@ function normalizeBrain(row: Partial<Brain> & Record<string, unknown>): Brain {
     model: (row.model as string | null) ?? empty.model,
     target_lang: (row.target_lang as string | null) ?? null,
     active: (row.active as boolean | null) ?? true,
-    identity_profile: (row.identity_profile as Record<string, unknown>) ?? {},
+    identity_profile: normalizeIdentityProfile(row.identity_profile),
     strategic_concept: (row.strategic_concept as string) ?? "",
     knowledge_bases: (row.knowledge_bases as string[]) ?? [],
     monetization_model: (row.monetization_model as string | null) ?? null,
-    business_rules: (row.business_rules as Record<string, unknown>) ?? {},
+    business_rules: normalizeBusinessRules(row.business_rules),
     task_automation: (row.task_automation as string[]) ?? [],
     data_sources: (row.data_sources as string[]) ?? [],
     output_targets: (row.output_targets as string[]) ?? [],
@@ -249,7 +317,6 @@ function StatsModal({ open, onClose, brain }: { open: boolean; onClose: () => vo
 
 function BrainWizardModal({ open, onClose, brainId, onSaved }: { open: boolean; onClose: () => void; brainId: string | null; onSaved: () => void }) {
   const [countries, setCountries] = useState<Country[]>([]);
-  const [agencies, setAgencies] = useState<AgencyOption[]>([]);
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState<Brain>(createEmptyBrain());
   const [identityText, setIdentityText] = useState(toJsonText(createEmptyBrain().identity_profile));
@@ -266,12 +333,8 @@ function BrainWizardModal({ open, onClose, brainId, onSaved }: { open: boolean; 
   useEffect(() => {
     if (!open) return;
     async function loadRefs() {
-      const [{ data: countryRows }, { data: agencyRows }] = await Promise.all([
-        supabase.from("countries").select("code, name, emoji_flag").order("name"),
-        supabase.from("agencies").select("id, commercial_name").eq("active", true).order("commercial_name"),
-      ]);
+      const { data: countryRows } = await supabase.from("countries").select("code, name, emoji_flag").order("name");
       setCountries((countryRows as Country[]) || []);
-      setAgencies((agencyRows as AgencyOption[]) || []);
     }
     void loadRefs();
   }, [open]);
@@ -325,6 +388,8 @@ function BrainWizardModal({ open, onClose, brainId, onSaved }: { open: boolean; 
     if (!canSave) return;
     setLoading(true);
     try {
+      const parsedIdentity = normalizeIdentityProfile(JSON.parse(identityText));
+      const parsedBusinessRules = normalizeBusinessRules(JSON.parse(businessRulesText));
       const payload = {
         name: form.name.trim(),
         domaintraveler: isFrontend ? (form.domaintraveler || "").trim() : null,
@@ -332,8 +397,8 @@ function BrainWizardModal({ open, onClose, brainId, onSaved }: { open: boolean; 
         execution_layer: form.execution_layer,
         brain_category: form.brain_category,
         scope: form.scope,
-        owner_agency_id: form.scope === "agency" ? form.owner_agency_id : null,
-        created_for_agency_id: form.created_for_agency_id,
+        owner_agency_id: null,
+        created_for_agency_id: null,
         market_origin: form.market_origin,
         market_destination: form.market_destination,
         market_segment: form.market_segment,
@@ -343,11 +408,11 @@ function BrainWizardModal({ open, onClose, brainId, onSaved }: { open: boolean; 
         target_lang: form.target_lang,
         active: form.active,
         visibility_level: form.visibility_level,
-        identity_profile: JSON.parse(identityText),
+        identity_profile: parsedIdentity,
         strategic_concept: form.strategic_concept,
         knowledge_bases: parseCommaList(knowledgeBasesText),
         monetization_model: form.monetization_model,
-        business_rules: JSON.parse(businessRulesText),
+        business_rules: parsedBusinessRules,
         task_automation: form.task_automation,
         data_sources: form.data_sources,
         output_targets: form.output_targets,
@@ -423,22 +488,6 @@ function BrainWizardModal({ open, onClose, brainId, onSaved }: { open: boolean; 
                         {VISIBILITY.map((visibility) => <option key={visibility} value={visibility}>{VISIBILITY_LABELS[visibility]}</option>)}
                       </select>
                     </div>
-                    <div>
-                      <label className="text-sm text-gray-700">Agencia destino</label>
-                      <select className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" value={form.created_for_agency_id || ""} onChange={(e) => update("created_for_agency_id", e.target.value || null)}>
-                        <option value="">Sin agencia especifica</option>
-                        {agencies.map((agency) => <option key={agency.id} value={agency.id}>{agency.commercial_name}</option>)}
-                      </select>
-                    </div>
-                    {form.scope === "agency" && (
-                      <div>
-                        <label className="text-sm text-gray-700">Agencia propietaria</label>
-                        <select className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" value={form.owner_agency_id || ""} onChange={(e) => update("owner_agency_id", e.target.value || null)}>
-                          <option value="">Selecciona una agencia</option>
-                          {agencies.map((agency) => <option key={agency.id} value={agency.id}>{agency.commercial_name}</option>)}
-                        </select>
-                      </div>
-                    )}
                     <div className="flex items-center gap-2 pt-7">
                       <input id="active" type="checkbox" className="h-4 w-4 rounded border-gray-300 text-blue-600" checked={form.active} onChange={(e) => update("active", e.target.checked)} />
                       <label htmlFor="active" className="text-sm text-gray-700">Activo</label>
@@ -451,6 +500,9 @@ function BrainWizardModal({ open, onClose, brainId, onSaved }: { open: boolean; 
                       </div>
                     )}
                   </div>
+                  <p className="mt-3 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-800">
+                    La asignacion de brains a agencias se gestiona solo en Setting &gt; Agencias.
+                  </p>
                 </section>
 
                 <section className="mb-5 rounded-xl border border-gray-200 bg-white p-4">
@@ -541,13 +593,27 @@ function BrainWizardModal({ open, onClose, brainId, onSaved }: { open: boolean; 
 
                   <div className="mt-4 grid gap-4 md:grid-cols-2">
                     <div>
-                      <label className="text-sm text-gray-700">Identity Profile (JSON)</label>
+                      <div className="flex items-center justify-between gap-2">
+                        <label className="text-sm text-gray-700">Identity Profile (JSON compartido)</label>
+                        <button type="button" onClick={() => setIdentityText(toJsonText(createDefaultIdentityProfile()))} className="text-xs text-blue-700 hover:text-blue-800">
+                          Restablecer plantilla
+                        </button>
+                      </div>
                       <textarea rows={8} className={cn("mt-1 w-full rounded-lg border px-3 py-2 text-sm font-mono", identityIsJSON ? "border-gray-300" : "border-red-400")} value={identityText} onChange={(e) => setIdentityText(e.target.value)} />
+                      <p className="mt-1 text-xs text-gray-500">Define tono y voz global para chat y planning.</p>
                       {!identityIsJSON && <p className="mt-1 text-xs text-red-600">JSON invalido</p>}
                     </div>
                     <div>
-                      <label className="text-sm text-gray-700">Business Rules (JSON)</label>
+                      <div className="flex items-center justify-between gap-2">
+                        <label className="text-sm text-gray-700">Business Rules (JSON por canal)</label>
+                        <button type="button" onClick={() => setBusinessRulesText(toJsonText(createDefaultBusinessRules()))} className="text-xs text-blue-700 hover:text-blue-800">
+                          Restablecer plantilla
+                        </button>
+                      </div>
                       <textarea rows={8} className={cn("mt-1 w-full rounded-lg border px-3 py-2 text-sm font-mono", businessIsJSON ? "border-gray-300" : "border-red-400")} value={businessRulesText} onChange={(e) => setBusinessRulesText(e.target.value)} />
+                      <p className="mt-1 text-xs text-gray-500">
+                        Usa `channels.chat` y `channels.planning` para activar/desactivar y definir objetivos/campos requeridos.
+                      </p>
                       {!businessIsJSON && <p className="mt-1 text-xs text-red-600">JSON invalido</p>}
                     </div>
                   </div>

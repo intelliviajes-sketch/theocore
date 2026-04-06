@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { supabaseBrowser as supabase } from "@/lib/supabase/client";
 import { motion } from "framer-motion";
 import { Lock, Mail } from "lucide-react";
-import { THEOCORE_HOME, TRAVELER_HOME, agencyHomePath } from "@/lib/routes";
+import { THEOCORE_HOME, agencyHomePath } from "@/lib/routes";
 
 type Particle = {
   top: string;
@@ -65,7 +65,21 @@ export default function TheoCoreLoginPage() {
       const { data: traveler } = await supabase.from("agency_travelers").select("agency_id").eq("traveler_id", userId).maybeSingle();
 
       if (traveler?.agency_id) {
-        router.replace(TRAVELER_HOME);
+        const { data: agencyDomainRows } = await supabase
+          .from("agency_domains")
+          .select("domain, is_primary")
+          .eq("agency_id", traveler.agency_id)
+          .order("is_primary", { ascending: false })
+          .order("created_at", { ascending: true })
+          .limit(1);
+
+        const travelerDomain = agencyDomainRows?.[0]?.domain?.trim();
+        if (travelerDomain) {
+          window.location.href = `https://${travelerDomain}/traveler`;
+          return;
+        }
+
+        setMsg("Perfil traveler detectado, pero la agencia no tiene dominio publico configurado.");
         return;
       }
 

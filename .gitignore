@@ -1,5 +1,6 @@
 node_modules/
 android/
+apk-web/
 .next/
 .cache/
 .venv/
@@ -17,3 +18,4 @@ dist/
 out/
 *.zip
 workspace.code-workspace
+.vercel

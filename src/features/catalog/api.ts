@@ -282,6 +282,7 @@ export async function saveCatalogItem(payload: CatalogSavePayload) {
     images: payload.images,
     fields: payload.fields,
     amenities: payload.amenities,
+    market_context: payload.market_context ?? null,
   };
 
   const basePayload = {
@@ -293,7 +294,7 @@ export async function saveCatalogItem(payload: CatalogSavePayload) {
     data,
     source_name: payload.title,
     source_ai_brain_id: null,
-    raw_ai_output: null,
+    raw_ai_output: payload.raw_ai_output ?? null,
     title: payload.title,
     summary: payload.summary,
     creation_source: payload.creation_source,
@@ -302,9 +303,41 @@ export async function saveCatalogItem(payload: CatalogSavePayload) {
     active: payload.active,
   };
 
+  async function upsertMarketVariant(catalogId: string) {
+    if (!payload.market_context) return;
+    const market = payload.market_context;
+    const { error } = await supabase
+      .from("catalog_market_variants")
+      .upsert(
+        {
+          catalog_id: catalogId,
+          agency_id: payload.agency_id,
+          market_config_id: market.market_config_id || null,
+          country_code: market.country_code || payload.country_code || null,
+          language_code: market.language_code || null,
+          currency_code: market.currency_code || null,
+          timezone: market.timezone || null,
+          localized_title: payload.title,
+          localized_summary: payload.summary,
+          localized_data: {
+            fields: payload.fields,
+            amenities: payload.amenities,
+            images: payload.images,
+          },
+          active: payload.active,
+        },
+        { onConflict: "catalog_id,country_code,language_code,domain" },
+      );
+
+    if (error && !isMissingRelationError(error)) {
+      throw error;
+    }
+  }
+
   if (payload.id) {
     const { error } = await supabase.from("catalog_global").update(basePayload).eq("id", payload.id);
     if (error) throw error;
+    await upsertMarketVariant(payload.id);
     return payload.id;
   }
 
@@ -318,6 +351,7 @@ export async function saveCatalogItem(payload: CatalogSavePayload) {
     .single();
 
   if (error) throw error;
+  await upsertMarketVariant(inserted.id as string);
   return inserted.id as string;
 }
 

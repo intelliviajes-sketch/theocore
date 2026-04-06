@@ -13,6 +13,16 @@ function isPhone(value: string) {
   return normalized.length >= 7;
 }
 
+function isHexColor(value: string) {
+  return /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(value.trim());
+}
+
+function isLikelyUrl(value: string) {
+  const trimmed = value.trim();
+  if (trimmed.startsWith("/")) return true;
+  return /^https?:\/\//i.test(trimmed);
+}
+
 export function validateAgencyForm(input: {
   commercialName: string;
   legalName: string;
@@ -21,6 +31,13 @@ export function validateAgencyForm(input: {
   emailEmergency?: string;
   whatsapp?: string;
   bankInformation?: string;
+  brandName?: string;
+  logoUrl?: string;
+  primaryColor?: string;
+  secondaryColor?: string;
+  accentColor?: string;
+  stickyBgColor?: string;
+  stickyTextColor?: string;
 }) {
   const errors: FieldErrors = {};
 
@@ -44,6 +61,30 @@ export function validateAgencyForm(input: {
     } catch {
       errors.bankInformation = "La informacion bancaria debe ser un JSON valido.";
     }
+  }
+
+  if (hasValue(input.logoUrl || "") && !isLikelyUrl(input.logoUrl || "")) {
+    errors.logoUrl = "El logo debe ser una URL valida (http/https) o ruta relativa.";
+  }
+
+  if (hasValue(input.primaryColor || "") && !isHexColor(input.primaryColor || "")) {
+    errors.primaryColor = "Color primario invalido. Usa formato HEX (#RRGGBB).";
+  }
+
+  if (hasValue(input.secondaryColor || "") && !isHexColor(input.secondaryColor || "")) {
+    errors.secondaryColor = "Color secundario invalido. Usa formato HEX (#RRGGBB).";
+  }
+
+  if (hasValue(input.accentColor || "") && !isHexColor(input.accentColor || "")) {
+    errors.accentColor = "Color acento invalido. Usa formato HEX (#RRGGBB).";
+  }
+
+  if (hasValue(input.stickyBgColor || "") && !isHexColor(input.stickyBgColor || "")) {
+    errors.stickyBgColor = "Color de fondo sticky invalido. Usa formato HEX (#RRGGBB).";
+  }
+
+  if (hasValue(input.stickyTextColor || "") && !isHexColor(input.stickyTextColor || "")) {
+    errors.stickyTextColor = "Color de texto sticky invalido. Usa formato HEX (#RRGGBB).";
   }
 
   return errors;

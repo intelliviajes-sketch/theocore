@@ -118,12 +118,30 @@
   * {
     @apply border-border outline-ring/50;
   }
+  html,
+  body {
+    min-height: 100%;
+    width: 100%;
+    overflow-x: hidden;
+  }
   body {
     background-color: transparent !important;
   }
 }
 
 @layer components {
+  .intranet-wrapper {
+    min-height: 100dvh;
+    width: 100%;
+    overflow-x: hidden;
+    padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
+  }
+
+  .intranet-mobile-scroll {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+  }
+
   .traveler-shell {
     --trav-primary: #f97316;
     --trav-accent: #f97316;

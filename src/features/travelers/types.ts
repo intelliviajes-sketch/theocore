@@ -1,4 +1,4 @@
-﻿export type TravelerRow = {
+export type TravelerRow = {
   id: string;
   full_name: string;
   email: string;
@@ -7,6 +7,26 @@
   created_at: string;
   country?: string | null;
   language?: string | null;
+};
+
+export type TravelerExistingMatch = {
+  id: string;
+  full_name: string;
+  email: string;
+  phone: string | null;
+  agency_links: number;
+};
+
+export type TravelerAgencyHistoryRow = {
+  id: string;
+  agency_id: string;
+  agency_name: string | null;
+  status: string | null;
+  priority: string | null;
+  segment: string | null;
+  notes: string | null;
+  created_at: string | null;
+  updated_at: string | null;
 };
 
 export type AgencyTravelerRow = {

@@ -15,6 +15,11 @@ const nextConfig: NextConfig = {
   async redirects() {
     return [
       {
+        source: "/",
+        destination: "/intranet",
+        permanent: false,
+      },
+      {
         source: "/intracore/agency/:id/:path*",
         destination: "/intranet/agency/:id/:path*",
         permanent: true,

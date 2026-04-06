@@ -6,7 +6,6 @@ function createSupabaseBrowserClient() {
   return createBrowserClient(getSupabaseUrl(), getSupabaseAnonKey(), {
     auth: {
       persistSession: true,
-      storageKey: "theocore_auth",
       autoRefreshToken: true,
       detectSessionInUrl: true,
     },

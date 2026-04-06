@@ -4,6 +4,7 @@ node_modules
 .git
 .github
 android
+apk-web
 dist
 out
 coverage

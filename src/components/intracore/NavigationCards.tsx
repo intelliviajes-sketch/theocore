@@ -42,8 +42,8 @@ function safeJsonArray(str?: string | null): string[] | null {
 
 const rootMenu = [
   { name: "Agencias", path: theocoreSettingPath("agencias"), icon: "Building2" },
-  { name: "Travelers globales", path: theocorePath("globaltravelers"), icon: "Users" },
-  { name: "Global team", path: theocorePath("globalteam"), icon: "Users" },
+  { name: "Travelers Global", path: theocorePath("globaltravelers"), icon: "Users" },
+  { name: "Equipo global", path: theocorePath("globalteam"), icon: "Users" },
   { name: "Brains IA", path: theocoreSettingPath("brain"), icon: "Brain" },
   { name: "Catalogo global", path: theocorePath("catalog"), icon: "PackageSearch" },
 ] as const;
@@ -213,7 +213,7 @@ export default function NavigationCards() {
       {loading ? (
         <LoaderPro message={loaderMessage} />
       ) : cards.length === 0 ? (
-        <div className="text-slate-500 dark:text-slate-400">No hay elementos disponibles.</div>
+        <div className="hidden" />
       ) : (
         <motion.div
           initial={{ opacity: 0 }}

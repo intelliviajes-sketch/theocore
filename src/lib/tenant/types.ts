@@ -5,6 +5,9 @@ export interface TenantAgency {
   commercialName: string;
   legalName: string;
   countryCode: string;
+  address?: string | null;
+  emailContact?: string | null;
+  whatsapp?: string | null;
 }
 
 export interface TenantDomain {
@@ -34,6 +37,24 @@ export interface TenantMarket {
   defaultBrainId: string | null;
 }
 
+export interface TenantMarketContent {
+  marketCode: string;
+  domain: string | null;
+  languageCode: string;
+  brandName: string | null;
+  logoUrl: string | null;
+  heroTitle: string | null;
+  heroSubtitle: string | null;
+  ctaPrimary: string | null;
+  ctaSecondary: string | null;
+  footerAddress: string | null;
+  footerEmail: string | null;
+  footerPhone: string | null;
+  legalNotice: string | null;
+  stickyBgColor: string | null;
+  stickyTextColor: string | null;
+}
+
 export interface ResolvedTenant {
   kind: TenantKind;
   host: string;
@@ -41,8 +62,13 @@ export interface ResolvedTenant {
   isLocalhost: boolean;
   isPlatformHost: boolean;
   resolvedFromDomain: boolean;
+  agencyActive: boolean;
+  marketActive: boolean;
+  travelerEnabled: boolean;
+  disabledReason: "agency_inactive" | "market_inactive" | null;
   agency: TenantAgency | null;
   domain: TenantDomain | null;
   branding: TenantBranding | null;
   market: TenantMarket | null;
+  marketContent: TenantMarketContent | null;
 }

@@ -90,7 +90,7 @@ export function TravelerCatalogProvider({ children }: { children: ReactNode }) {
   const [error, setError] = useState<string | null>(null);
 
   const reload = useCallback(async () => {
-    if (tenant.kind !== "agency" || !tenant.agency?.id) {
+    if (tenant.kind !== "agency" || !tenant.agency?.id || !tenant.travelerEnabled) {
       setItems([]);
       setError(null);
       return;
@@ -112,7 +112,7 @@ export function TravelerCatalogProvider({ children }: { children: ReactNode }) {
     } finally {
       setLoading(false);
     }
-  }, [tenant.kind, tenant.agency?.id, tenant.market?.countryCode]);
+  }, [tenant.kind, tenant.agency?.id, tenant.market?.countryCode, tenant.travelerEnabled]);
 
   useEffect(() => {
     void reload();

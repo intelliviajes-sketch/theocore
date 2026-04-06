@@ -1,6 +1,12 @@
 ﻿import { headers } from "next/headers";
 import { supabaseAdmin } from "@/lib/supabase/server";
-import type { ResolvedTenant, TenantBranding, TenantDomain, TenantMarket } from "./types";
+import type {
+  ResolvedTenant,
+  TenantBranding,
+  TenantDomain,
+  TenantMarket,
+  TenantMarketContent,
+} from "./types";
 
 type AgencyDomainRow = {
   id: string;
@@ -15,6 +21,10 @@ type AgencyRow = {
   commercial_name: string;
   legal_name: string;
   country_code: string;
+  address: string | null;
+  email_contact: string | null;
+  whatsapp: string | null;
+  active: boolean;
 };
 
 type BrandingRow = {
@@ -35,6 +45,25 @@ type MarketRow = {
   currency_code: string;
   timezone: string;
   default_brain_id: string | null;
+  active: boolean;
+};
+
+type MarketContentRow = {
+  market_code: string;
+  domain: string | null;
+  language_code: string;
+  brand_name: string | null;
+  logo_url: string | null;
+  hero_title: string | null;
+  hero_subtitle: string | null;
+  cta_primary: string | null;
+  cta_secondary: string | null;
+  footer_address: string | null;
+  footer_email: string | null;
+  footer_phone: string | null;
+  legal_notice: string | null;
+  sticky_bg_color: string | null;
+  sticky_text_color: string | null;
 };
 
 const LOCAL_HOSTS = new Set(["localhost", "127.0.0.1", "0.0.0.0"]);
@@ -105,10 +134,15 @@ function buildPlatformTenant(host: string, normalizedHost: string): ResolvedTena
     isLocalhost,
     isPlatformHost: true,
     resolvedFromDomain: false,
+    agencyActive: true,
+    marketActive: true,
+    travelerEnabled: true,
+    disabledReason: null,
     agency: null,
     domain: null,
     branding: null,
     market: null,
+    marketContent: null,
   };
 }
 
@@ -138,29 +172,121 @@ function mapMarket(row: MarketRow | null, fallbackCountryCode: string): TenantMa
   };
 }
 
-async function loadMarketConfig(agencyId: string, preferredCountryCode: string | null, agencyCountryCode: string) {
-  const targetCountryCode = preferredCountryCode ?? agencyCountryCode;
+function mapMarketContent(row: MarketContentRow | null): TenantMarketContent | null {
+  if (!row) return null;
+  return {
+    marketCode: row.market_code,
+    domain: row.domain,
+    languageCode: row.language_code,
+    brandName: row.brand_name,
+    logoUrl: row.logo_url,
+    heroTitle: row.hero_title,
+    heroSubtitle: row.hero_subtitle,
+    ctaPrimary: row.cta_primary,
+    ctaSecondary: row.cta_secondary,
+    footerAddress: row.footer_address,
+    footerEmail: row.footer_email,
+    footerPhone: row.footer_phone,
+    legalNotice: row.legal_notice,
+    stickyBgColor: row.sticky_bg_color,
+    stickyTextColor: row.sticky_text_color,
+  };
+}
 
-  const { data: market, error } = await supabaseAdmin
-    .from("agency_market_config")
-    .select("country_code, language_code, currency_code, timezone, default_brain_id")
+async function loadMarketContent(
+  agencyId: string,
+  marketCode: string | null,
+  domain: string | null,
+  languageCode: string | null,
+) {
+  if (!marketCode) return null;
+
+  const normalizedMarketCode = marketCode.toUpperCase();
+  const normalizedDomain = domain ? domain.toLowerCase() : null;
+  const normalizedLanguage = (languageCode || "es").toLowerCase();
+
+  let exactQuery = supabaseAdmin
+    .from("agency_market_content")
+    .select(
+      "market_code, domain, language_code, brand_name, logo_url, hero_title, hero_subtitle, cta_primary, cta_secondary, footer_address, footer_email, footer_phone, legal_notice, sticky_bg_color, sticky_text_color",
+    )
     .eq("agency_id", agencyId)
-    .eq("country_code", targetCountryCode)
+    .eq("market_code", normalizedMarketCode)
+    .eq("language_code", normalizedLanguage)
+    .eq("active", true);
+
+  exactQuery =
+    normalizedDomain === null ? exactQuery.is("domain", null) : exactQuery.eq("domain", normalizedDomain);
+
+  const { data: exact, error: exactError } = await exactQuery.maybeSingle();
+  if (exactError) {
+    console.error("Error cargando market content exacto:", exactError);
+  }
+  if (exact) return mapMarketContent(exact as MarketContentRow);
+
+  const { data: fallbackLanguage, error: fallbackLanguageError } = await supabaseAdmin
+    .from("agency_market_content")
+    .select(
+      "market_code, domain, language_code, brand_name, logo_url, hero_title, hero_subtitle, cta_primary, cta_secondary, footer_address, footer_email, footer_phone, legal_notice, sticky_bg_color, sticky_text_color",
+    )
+    .eq("agency_id", agencyId)
+    .eq("market_code", normalizedMarketCode)
+    .eq("language_code", normalizedLanguage)
+    .is("domain", null)
     .eq("active", true)
     .maybeSingle();
+  if (fallbackLanguageError) {
+    console.error("Error cargando market content fallback idioma:", fallbackLanguageError);
+  }
+  if (fallbackLanguage) return mapMarketContent(fallbackLanguage as MarketContentRow);
 
-  if (!error || market) {
-    return market as MarketRow | null;
+  const { data: generic, error: genericError } = await supabaseAdmin
+    .from("agency_market_content")
+    .select(
+      "market_code, domain, language_code, brand_name, logo_url, hero_title, hero_subtitle, cta_primary, cta_secondary, footer_address, footer_email, footer_phone, legal_notice, sticky_bg_color, sticky_text_color",
+    )
+    .eq("agency_id", agencyId)
+    .eq("market_code", normalizedMarketCode)
+    .is("domain", null)
+    .eq("active", true)
+    .order("language_code", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  if (genericError) {
+    console.error("Error cargando market content generico:", genericError);
+  }
+  return mapMarketContent((generic as MarketContentRow | null) ?? null);
+}
+
+async function loadMarketConfig(
+  agencyId: string,
+  preferredCountryCode: string | null,
+  agencyCountryCode: string,
+) {
+  const targetCountryCode = preferredCountryCode ?? agencyCountryCode;
+
+  const { data: exactMarket, error: exactError } = await supabaseAdmin
+    .from("agency_market_config")
+    .select("country_code, language_code, currency_code, timezone, default_brain_id, active")
+    .eq("agency_id", agencyId)
+    .eq("country_code", targetCountryCode)
+    .maybeSingle();
+
+  if (exactError) {
+    console.error("Error cargando market config exacto del tenant:", exactError);
   }
 
-  if (!preferredCountryCode || preferredCountryCode === agencyCountryCode) {
-    console.error("Error cargando market config del tenant:", error);
-    return null;
+  if (exactMarket) {
+    const resolved = exactMarket as MarketRow;
+    return {
+      market: resolved,
+      marketActive: resolved.active !== false,
+    };
   }
 
   const { data: fallbackMarket, error: fallbackError } = await supabaseAdmin
     .from("agency_market_config")
-    .select("country_code, language_code, currency_code, timezone, default_brain_id")
+    .select("country_code, language_code, currency_code, timezone, default_brain_id, active")
     .eq("agency_id", agencyId)
     .eq("country_code", agencyCountryCode)
     .eq("active", true)
@@ -170,7 +296,30 @@ async function loadMarketConfig(agencyId: string, preferredCountryCode: string |
     console.error("Error cargando market config fallback del tenant:", fallbackError);
   }
 
-  return (fallbackMarket as MarketRow | null) ?? null;
+  if (fallbackMarket) {
+    return {
+      market: fallbackMarket as MarketRow,
+      marketActive: true,
+    };
+  }
+
+  const { data: firstActiveMarket, error: firstActiveError } = await supabaseAdmin
+    .from("agency_market_config")
+    .select("country_code, language_code, currency_code, timezone, default_brain_id, active")
+    .eq("agency_id", agencyId)
+    .eq("active", true)
+    .order("country_code", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+
+  if (firstActiveError) {
+    console.error("Error cargando primer market activo del tenant:", firstActiveError);
+  }
+
+  return {
+    market: (firstActiveMarket as MarketRow | null) ?? null,
+    marketActive: Boolean(firstActiveMarket),
+  };
 }
 
 async function resolveLocalhostAgencyFallback(host: string, normalizedHost: string): Promise<ResolvedTenant | null> {
@@ -180,7 +329,7 @@ async function resolveLocalhostAgencyFallback(host: string, normalizedHost: stri
 
   let agencyQuery = supabaseAdmin
     .from("agencies")
-    .select("id, commercial_name, legal_name, country_code")
+    .select("id, commercial_name, legal_name, country_code, address, email_contact, whatsapp, active")
     .eq("active", true)
     .order("created_at", { ascending: true })
     .limit(1);
@@ -206,7 +355,7 @@ async function resolveLocalhostAgencyFallback(host: string, normalizedHost: stri
       .maybeSingle(),
     supabaseAdmin
       .from("agency_market_config")
-      .select("country_code, language_code, currency_code, timezone, default_brain_id")
+      .select("country_code, language_code, currency_code, timezone, default_brain_id, active")
       .eq("agency_id", agency.id)
       .eq("active", true)
       .order("country_code", { ascending: true })
@@ -223,15 +372,23 @@ async function resolveLocalhostAgencyFallback(host: string, normalizedHost: stri
     isLocalhost: true,
     isPlatformHost: false,
     resolvedFromDomain: false,
+    agencyActive: true,
+    marketActive: true,
+    travelerEnabled: true,
+    disabledReason: null,
     agency: {
       id: agency.id,
       commercialName: agency.commercial_name,
       legalName: agency.legal_name,
       countryCode: agency.country_code,
+      address: agency.address,
+      emailContact: agency.email_contact,
+      whatsapp: agency.whatsapp,
     },
     domain: null,
     branding: mapBranding((branding as BrandingRow | null) ?? null),
     market: mapMarket((market as MarketRow | null) ?? null, fallbackCountryCode),
+    marketContent: null,
   };
 }
 
@@ -255,7 +412,9 @@ export async function resolveTenantFromHost(rawHost: string | null | undefined):
     .from("agency_domains")
     .select("id, domain, country_code, is_primary, agency_id")
     .in("domain", candidates)
-    .eq("active", true);
+    .eq("active", true)
+    .order("is_primary", { ascending: false })
+    .order("domain", { ascending: true });
 
   if (domainError) {
     console.error("Error resolviendo dominio de agencia:", domainError);
@@ -285,9 +444,8 @@ export async function resolveTenantFromHost(rawHost: string | null | undefined):
   const [{ data: agency, error: agencyError }, { data: branding }] = await Promise.all([
     supabaseAdmin
       .from("agencies")
-      .select("id, commercial_name, legal_name, country_code")
+      .select("id, commercial_name, legal_name, country_code, address, email_contact, whatsapp, active")
       .eq("id", domainRow.agency_id)
-      .eq("active", true)
       .maybeSingle(),
     supabaseAdmin
       .from("agency_branding")
@@ -306,8 +464,27 @@ export async function resolveTenantFromHost(rawHost: string | null | undefined):
     };
   }
 
-  const market = await loadMarketConfig(domainRow.agency_id, domainRow.country_code, agency.country_code);
+  const marketResolution = await loadMarketConfig(
+    domainRow.agency_id,
+    domainRow.country_code,
+    agency.country_code,
+  );
+  const market = marketResolution.market;
+  const agencyActive = agency.active !== false;
+  const marketActive = marketResolution.marketActive;
+  const travelerEnabled = agencyActive && marketActive;
+  const disabledReason = !agencyActive
+    ? "agency_inactive"
+    : !marketActive
+      ? "market_inactive"
+      : null;
   const fallbackCountryCode = domainRow.country_code ?? agency.country_code;
+  const marketContent = await loadMarketContent(
+    domainRow.agency_id,
+    market?.country_code ?? fallbackCountryCode,
+    domainRow.domain,
+    market?.language_code ?? null,
+  );
   const mappedDomain: TenantDomain = {
     id: domainRow.id,
     domain: domainRow.domain,
@@ -322,15 +499,23 @@ export async function resolveTenantFromHost(rawHost: string | null | undefined):
     isLocalhost: LOCAL_HOSTS.has(normalizedHost),
     isPlatformHost: false,
     resolvedFromDomain: true,
+    agencyActive,
+    marketActive,
+    travelerEnabled,
+    disabledReason,
     agency: {
       id: agency.id,
       commercialName: agency.commercial_name,
       legalName: agency.legal_name,
       countryCode: agency.country_code,
+      address: agency.address,
+      emailContact: agency.email_contact,
+      whatsapp: agency.whatsapp,
     },
     domain: mappedDomain,
     branding: mapBranding((branding as BrandingRow | null) ?? null),
     market: mapMarket(market, fallbackCountryCode),
+    marketContent,
   };
 }
 

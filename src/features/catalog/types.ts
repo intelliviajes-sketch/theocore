@@ -90,4 +90,12 @@ export type CatalogSavePayload = {
   created_by: string;
   creation_source: CatalogCreationSource;
   created_via_tool: string;
+  raw_ai_output?: Record<string, unknown> | null;
+  market_context?: {
+    market_config_id?: string | null;
+    country_code?: string | null;
+    language_code?: string | null;
+    currency_code?: string | null;
+    timezone?: string | null;
+  } | null;
 };
